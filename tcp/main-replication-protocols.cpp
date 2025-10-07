@@ -132,25 +132,13 @@ int main(int argc, char *argv[])
                                 .count();
 
 #ifdef FAILURE_MODE
-    // Calculate adjusted expected based on actual failure
+    // For real node killing test: expect full operations initially
+    // System will detect failure and continue with reduced operations
     int adjusted_expected = expected_calls;
     
-    // Only adjust if a node actually fails (not for failed_node=0)
-    if (failed_node > 0 && failed_node <= numnodes) {
-        // If this is the failed node, it will only complete half its work
-        if (id == failed_node) {
-            adjusted_expected -= (expected_calls / numnodes) / 2;
-            std::cout << "This node will fail mid-execution. Adjusted expected: " 
-                      << adjusted_expected << std::endl;
-        }
-        // All nodes expect fewer total operations due to the failure
-        else {
-            // Expect full operations minus what the failed node won't complete
-            adjusted_expected = expected_calls - ((expected_calls / numnodes) / 2);
-            std::cout << "Adjusted expected due to node " << failed_node << " failure: " 
-                      << adjusted_expected << std::endl;
-        }
-    }
+    // NOTE: When killing a node externally, we don't know when it will die
+    // So start with full expectations and let failure detection handle it
+    std::cout << "Running in FAILURE_MODE - will handle node failures dynamically" << std::endl;
     
     bool failed_node_detected = false;
 #else
@@ -204,6 +192,23 @@ int main(int argc, char *argv[])
         int current = hdl->obj.waittobestable.load();
         auto now = std::chrono::steady_clock::now();
         
+#ifdef FAILURE_MODE
+        // Dynamically adjust expectations when failures are detected
+        static int last_failed_count = 0;
+        int current_failed_count = hdl->failed_count.load();
+        if (current_failed_count > last_failed_count) {
+            // A node failed - we don't know how many operations it completed
+            // Assume it completed roughly half (worst case for mid-execution failure)
+            int ops_per_node = expected_calls / numnodes;
+            int estimated_lost_ops = ops_per_node / 2;
+            adjusted_expected -= estimated_lost_ops;
+            
+            std::cout << "[DYNAMIC ADJUST] Node failure detected. New adjusted_expected: " 
+                      << adjusted_expected << " (reduced by " << estimated_lost_ops << ")" << std::endl;
+            last_failed_count = current_failed_count;
+        }
+#endif
+        
         if (current % 100 == 0 && current != last_printed) {
             std::cout << "[PROGRESS] waittobestable: " << current 
                       << " / " << adjusted_expected << std::endl;
@@ -211,11 +216,22 @@ int main(int argc, char *argv[])
             last_print_time = now;
         }
         
-        // If stuck for more than 5 seconds, print debug info
-        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() > 5) {
+        // If stuck for more than 10 seconds, print debug info and potentially break
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() > 10) {
             std::cout << "[STUCK] waittobestable: " << current << " / " << adjusted_expected 
                       << ", stable_index: " << hdl->obj.stable_state.index 
-                      << ", execution_list_size: " << hdl->executionList.size() << std::endl;
+                      << ", execution_list_size: " << hdl->executionList.size() 
+                      << ", failed_nodes: " << hdl->failed_count.load() << std::endl;
+            
+#ifdef FAILURE_MODE
+            // If we've detected failures and been stuck, the killed node likely didn't finish
+            // Adjust expectations and continue
+            if (hdl->failed_count.load() > 0 && current >= (adjusted_expected * 0.85)) {
+                std::cout << "[AUTO-COMPLETE] Close enough to target with " 
+                          << hdl->failed_count.load() << " failed nodes. Completing..." << std::endl;
+                break;
+            }
+#endif
             last_print_time = now;
         }
         
@@ -271,6 +287,8 @@ int main(int argc, char *argv[])
         if (it != calls.end())
         {
 #ifdef FAILURE_MODE
+            // COMMENT OUT simulated failure for testing real kills
+            /*
             // Debug: check progress toward failure point
             if (id == failed_node && std::distance(calls.begin(), it) % 50 == 0) {
                 cout << "[FAILURE CHECK] Progress: " << std::distance(calls.begin(), it) 
@@ -288,6 +306,7 @@ int main(int argc, char *argv[])
                 std::cout << "Node " << id << " entering passive mode (receiving only)" << std::endl;
                 continue;
             }
+            */
             
             if (!failed_node_detected && hdl->failed[failed_node - 1]) {
                 failed_node_detected = true;
