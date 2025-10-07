@@ -97,7 +97,7 @@ ServersCommunicationLayer::ServersCommunicationLayer(int id, std::vector<string>
     this->handler = hdl;
     this->initcounter = initcounter;
     acceptingSocket = new TCPServerSocket(ports[id - 1]);
-    dsad
+
     // Initialize all nodes as alive
     for (int i = 1; i <= hosts.size(); i++)
     {
