@@ -394,7 +394,7 @@ int main(int argc, char *argv[])
 #endif
     if (ops_rate == 1e9)
         std::cout << "throughput: "
-                  << (static_cast<double>(numop) / static_cast<double>(local_end - local_start)) * 1000 << std::endl;
+                  << (static_cast<double>(numop) / static_cast<double>(local_end - local_start)) * 1000 << " ops/ms"<< std::endl;
 
     std::cout << "total time for simulation = " <<  static_cast<double>(local_end - local_start) / 1000  << " milliseconds "<<std::endl;
     
