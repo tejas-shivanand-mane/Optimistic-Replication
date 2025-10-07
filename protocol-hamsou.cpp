@@ -217,6 +217,12 @@ public:
         return std::max(quorum, 1); // At least 1 ack needed
     }
     
+    // Add method to handle init messages
+    void handleInitMessage(int remote_node_id)
+    {
+        updateHeartbeat(remote_node_id);
+    }
+    
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
         uint8_t *start = buffer + sizeof(uint64_t);

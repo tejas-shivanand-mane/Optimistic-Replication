@@ -138,6 +138,9 @@ int main(int argc, char *argv[])
     // Start failure detection thread
     std::atomic<bool> running{true};
     std::thread failure_detector([&]() {
+        // Wait for initial sync to complete before starting failure detection
+        std::this_thread::sleep_for(std::chrono::seconds(15));
+        
         while (running.load()) {
             std::this_thread::sleep_for(std::chrono::seconds(5));
             hdl->checkForFailures(10); // 10 second timeout

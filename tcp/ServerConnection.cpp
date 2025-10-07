@@ -6,13 +6,10 @@
 #include "Socket.cpp"
 #include <atomic>
 
-// #include "../replicated-object.hpp"
-// #include "../protocol2-partialsyn.cpp"
-// #define FAILURE_MODE
-// #define CRDT_MESSAGE_PASSING
-bool activate_timeout = true; // this is used to activate the timeout in the main-replication-protocols.cpp
+bool activate_timeout = true;
 #define OPTIMISTIC_REPLICATION
 // #define ECROS
+// #define CRDT_MESSAGE_PASSING
 
 #ifdef CRDT_MESSAGE_PASSING
 #include "../protocol0-crdt-message-passing.cpp"
@@ -43,17 +40,12 @@ private:
 
 	int id;
 	int remoteId;
-	// bool activate_timeout;
 
 	Socket *socket;
-	// Receiver *receiver;
 	Handler *handler;
 #ifdef FAILURE_MODE
 	std::chrono::steady_clock::time_point last_recv_time;
 #endif
-
-	// int* syn_counter; // new added
-	//  Sender* sender;
 
 	std::vector<string> hosts;
 	int *ports;
@@ -82,16 +74,12 @@ ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::ve
 	this->ports = ports;
 	this->socket = socket;
 	this->handler = hdl;
-	// this->activate_timeout = false;
-	//  this->syn_counter = syn_counter;
 	this->initcounter = initcounter;
 #ifdef FAILURE_MODE
 	this->last_recv_time = std::chrono::steady_clock::now();
 #endif
 	if (isToConnect())
 		createConnection();
-
-	// sender = new Sender();
 }
 
 ServerConnection::~ServerConnection()
@@ -109,7 +97,6 @@ void ServerConnection::send(Buffer *buff)
 	if (socket == nullptr)
 	{
 		std::cout << "socket is null" << std::endl;
-		// Handle the error here, for example by returning from the function
 		return;
 	}
 	else
@@ -124,9 +111,6 @@ void ServerConnection::createConnection()
 	std::cout << "connecting to " << remoteId << std::endl;
 	socket = new TCPSocket(const_cast<char *>(hosts.at(remoteId - 1).c_str()), ports[remoteId - 1]);
 	socket->send(to_string(id));
-
-	// receiver = new Receiver(socket, remoteId, handler, initcounter);
-	// receiver->start();
 }
 
 bool ServerConnection::isToConnect()
@@ -139,8 +123,6 @@ void ServerConnection::closeSocket()
 	socket->close();
 }
 
-// establishing connection only to the nodes with higher id
-// connections to the nodes with lower ids have already been created
 void ServerConnection::reconnect(Socket *newSocket)
 {
 	std::cout << "reconnecting " << "id: " << id << " remoteId: " << remoteId << std::endl;
@@ -153,8 +135,6 @@ void ServerConnection::reconnect(Socket *newSocket)
 		else
 		{
 			socket = newSocket;
-			// receiver = new Receiver(socket, remoteId, handler, initcounter);
-			// receiver->start();
 		}
 	}
 }
@@ -190,7 +170,10 @@ void ServerConnection::receive()
 			Buffer *buff = socket->receive(length);
 			if (buff == nullptr)
 				break;
-			// cout << "checkkk222" << "this remote " << this->remoteId << endl;
+			
+			// *** KEY FIX: Update heartbeat for ANY message received from this node ***
+			handler->updateHeartbeat(this->remoteId);
+			
 			if (strcmp(buff->getContent(), "init") == 0)
 			{
 				std::cout << "in receive: " << buff->getContent() << std::endl;
@@ -198,7 +181,6 @@ void ServerConnection::receive()
 				if (initcounter->load() == handler->number_of_nodes - 1)
 				{
 					cout << "All nodes initialized, starting the protocol..." << endl;
-					// activate_timeout = true;
 				}
 			}
 			else
@@ -215,14 +197,12 @@ void ServerConnection::receive()
 					handler->internalDownstreamExecute(call);
 				}
 #elif defined(OPTIMISTIC_REPLICATION)
-				// cout<<"check"<<call.type<<endl;
 				if (call.type == "Ack")
 				{
 					handler->updateAcksTable(call);
 				}
 				else if (handler->obj.checkValidcall(call))
 				{
-					// std::lock_guard<std::mutex> lock(handler->mtx);
 					handler->internalDownstreamExecute(call);
 				}
 #elif defined(ECROS)
@@ -233,28 +213,17 @@ void ServerConnection::receive()
 	}
 	catch (Exception *e)
 	{
-
-		{
-			std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
-			handler->setfailurenode(this->remoteId);
-			activate_timeout = false; // Reset the flag after marking as failed
-		}
-
-		throw;
-
-
 #ifdef FAILURE_MODE
-		// std::string msg = e->getMessage();
-		// // if (activate_timeout)
-		// // if (msg.find("closed the socket") != std::string::npos && activate_timeout)
-		// {
-		// 	std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
-		// 	handler->setfailurenode(this->remoteId);
-		// 	activate_timeout = false; // Reset the flag after marking as failed
-		// }
+		if (activate_timeout)
+		{
+			std::cout << "Node " << this->remoteId << " marked as failed due to socket exception: " 
+			          << e->getMessage() << std::endl;
+			handler->setfailurenode(this->remoteId);
+		}
 #else
-		std::cerr << "Receive failed:" << e->getMessage() << std::endl;
+		std::cerr << "Receive failed: " << e->getMessage() << std::endl;
 #endif
 		delete e;
+		throw;
 	}
 }
