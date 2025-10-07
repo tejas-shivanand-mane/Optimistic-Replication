@@ -263,6 +263,27 @@ int main(int argc, char *argv[])
                               .count();
         if (it != calls.end())
         {
+
+
+
+            // ADD THIS DEBUG BLOCK
+            static int debug_counter = 0;
+            static int last_it_pos = 0;
+            int current_it_pos = std::distance(calls.begin(), it);
+            
+            if (debug_counter % 1000 == 0 || current_it_pos != last_it_pos) {
+                std::cout << "[IT_DEBUG] Node " << id 
+                        << " it_pos=" << current_it_pos 
+                        << "/" << calls.size()
+                        << " wait=" << wait 
+                        << " stableindex=" << stableindex
+                        << " waittobestable=" << hdl->obj.waittobestable.load()
+                        << std::endl;
+            }
+            last_it_pos = current_it_pos;
+            debug_counter++;
+            // END DEBUG BLOCK
+
             // Manual failure simulation removed - real failures are detected automatically
 
             if (preit != it)
@@ -298,11 +319,30 @@ int main(int argc, char *argv[])
 #endif
             if (req.type != "Read")
             {
+
+
+
 #if defined(OPTIMISTIC_REPLICATION)
                 if (!wait)
                 {
+
+
+
+                    // ADD THIS BEFORE localHandler
+                    static int handler_calls = 0;
+                    std::cout << "[HANDLER_CALL " << ++handler_calls << "] Node " << id 
+                            << " calling localHandler for it_pos=" 
+                            << std::distance(calls.begin(), it) << std::endl;
+                    
                     hdl->localHandler(req, send_flag, permiss, stableindex);
-if (send_flag)
+                    
+                    // ADD THIS AFTER localHandler
+                    std::cout << "[HANDLER_RESULT] send_flag=" << send_flag 
+                            << " permiss=" << permiss << std::endl;
+
+
+                    
+                    if (send_flag)
                     {
                         auto length = hdl->serializeCalls(req, payload);
                         std::string message(payload, payload + length);
