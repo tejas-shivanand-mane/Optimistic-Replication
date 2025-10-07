@@ -431,7 +431,7 @@ void ServersCommunicationLayer::handleAllReceives()
     while (running.load())
     {
         if (iteration % 1000 == 0) {
-            std::cout << "[HANDLE_RECEIVES] Node " << id << " - Receive loop iteration " << iteration << std::endl;
+            // std::cout << "[HANDLE_RECEIVES] Node " << id << " - Receive loop iteration " << iteration << std::endl;
         }
         iteration++;
         
