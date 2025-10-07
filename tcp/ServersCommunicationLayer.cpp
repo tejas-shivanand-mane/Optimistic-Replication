@@ -340,7 +340,7 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
     }
     
     // std::cout << "[BROADCAST_BUFFER] Node " << id << " - Broadcast complete: alive=" << alive_count 
-              << ", dead=" << dead_count << std::endl;
+            //   << ", dead=" << dead_count << std::endl;
     
     // Log broadcast summary if there are failures
     if (dead_count > 0) {
