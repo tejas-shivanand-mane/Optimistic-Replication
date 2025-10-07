@@ -424,8 +424,8 @@ void ServersCommunicationLayer::run()
 
 void ServersCommunicationLayer::handleAllReceives()
 {
-    std::cout << "[HANDLE_RECEIVES] Node " << id << " - Starting handleAllReceives()" << std::endl;
-    std::cout << "[" << getTimestamp() << "] [Node " << id << "] Receive loop started" << std::endl;
+    // std::cout << "[HANDLE_RECEIVES] Node " << id << " - Starting handleAllReceives()" << std::endl;
+    // std::cout << "[" << getTimestamp() << "] [Node " << id << "] Receive loop started" << std::endl;
     
     int iteration = 0;
     while (running.load())
@@ -449,7 +449,7 @@ void ServersCommunicationLayer::handleAllReceives()
             
             if (!isNodeAlive(nodeId)) {
                 if (iteration % 1000 == 0) {
-                    std::cout << "[HANDLE_RECEIVES] Node " << id << " - Skipping dead node " << nodeId << std::endl;
+                    // std::cout << "[HANDLE_RECEIVES] Node " << id << " - Skipping dead node " << nodeId << std::endl;
                 }
                 continue;
             }
@@ -480,8 +480,8 @@ void ServersCommunicationLayer::handleAllReceives()
         std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
     
-    std::cout << "[HANDLE_RECEIVES] Node " << id << " - Receive loop terminated" << std::endl;
-    std::cout << "[" << getTimestamp() << "] [Node " << id << "] Receive loop terminated" << std::endl;
+    // std::cout << "[HANDLE_RECEIVES] Node " << id << " - Receive loop terminated" << std::endl;
+    // std::cout << "[" << getTimestamp() << "] [Node " << id << "] Receive loop terminated" << std::endl;
 }
 
 void ServersCommunicationLayer::closeAllSockets()
