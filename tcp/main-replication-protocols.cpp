@@ -396,7 +396,7 @@ int main(int argc, char *argv[])
         std::cout << "throughput: "
                   << (static_cast<double>(numop) / static_cast<double>(local_end - local_start)) * 1000 << std::endl;
 
-    std::cout << "total time for simulation = " <<  static_cast<double>(local_end - local_start) * 1000  << " milliseconds "<<std::endl;
+    std::cout << "total time for simulation = " <<  static_cast<double>(local_end - local_start) / 1000  << " milliseconds "<<std::endl;
     
     // object->toString();
     std::this_thread::sleep_for(std::chrono::seconds(120));
