@@ -160,6 +160,13 @@ int main(int argc, char *argv[])
     cout << "expected calls: " << expected_calls << endl;
     cout << "adjusted_expected: " << adjusted_expected << endl;
     cout << "Node " << id << " starting with " << calls.size() << " local operations" << endl;
+    cout << "failed_node parameter: " << failed_node << endl;
+    
+#ifdef FAILURE_MODE
+    if (id == failed_node) {
+        cout << "*** THIS NODE (" << id << ") IS DESIGNATED TO FAIL AT 50% ***" << endl;
+    }
+#endif
 
     cout << "expected calls: " << expected_calls << endl;
     cout << "adjusted_expected: " << adjusted_expected << endl;
@@ -264,6 +271,12 @@ int main(int argc, char *argv[])
         if (it != calls.end())
         {
 #ifdef FAILURE_MODE
+            // Debug: check progress toward failure point
+            if (id == failed_node && std::distance(calls.begin(), it) % 50 == 0) {
+                cout << "[FAILURE CHECK] Progress: " << std::distance(calls.begin(), it) 
+                     << " / " << calls.size() << " (will fail at " << (calls.size() / 2) << ")" << endl;
+            }
+            
             if (id == failed_node && std::distance(calls.begin(), it) >= calls.size() / 2)
             {
                 std::cout << "Node " << id << " simulating failure at call index "
