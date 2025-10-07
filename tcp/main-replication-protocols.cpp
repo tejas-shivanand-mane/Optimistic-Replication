@@ -128,6 +128,8 @@ int main(int argc, char *argv[])
     auto it = calls.begin();
     auto preit = calls.end();
     cout << "expected calls: " << expected_calls << endl;
+    cout << "adjusted_expected: " << adjusted_expected << endl;
+    cout << "Node " << id << " starting with " << calls.size() << " local operations" << endl;
     
     int ops_rate = oppersecond;
     int op_interval_ns = 1e9 / ops_rate;
@@ -174,9 +176,24 @@ int main(int argc, char *argv[])
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
         // Debug progress
-        if (hdl->obj.waittobestable.load() % 100 == 0) {
-            std::cout << "[PROGRESS] waittobestable: " << hdl->obj.waittobestable.load() 
+        static int last_printed = 0;
+        static auto last_print_time = std::chrono::steady_clock::now();
+        int current = hdl->obj.waittobestable.load();
+        auto now = std::chrono::steady_clock::now();
+        
+        if (current % 100 == 0 && current != last_printed) {
+            std::cout << "[PROGRESS] waittobestable: " << current 
                       << " / " << adjusted_expected << std::endl;
+            last_printed = current;
+            last_print_time = now;
+        }
+        
+        // If stuck for more than 5 seconds, print debug info
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() > 5) {
+            std::cout << "[STUCK] waittobestable: " << current << " / " << adjusted_expected 
+                      << ", stable_index: " << hdl->obj.stable_state.index 
+                      << ", execution_list_size: " << hdl->executionList.size() << std::endl;
+            last_print_time = now;
         }
         
 #ifdef CRDT_MESSAGE_PASSING
