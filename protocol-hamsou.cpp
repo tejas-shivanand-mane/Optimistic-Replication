@@ -446,12 +446,12 @@ public:
         for (int i = 0; i < number_of_nodes; ++i)
             if (failed[i])
                 num_failed++;
-        cout << "updateAcksTable: num failed nodes: " << num_failed << std::endl;
+        // cout << "updateAcksTable: num failed nodes: " << num_failed << std::endl;
         quorum -= num_failed;
 #endif
         if (call.node_id == node_id)
         { 
-            cout << "acks[call.node_id - 1][call.call_id] is: " << acks[call.node_id - 1][call.call_id] << ", quorum is: " << quorum << std::endl; 
+            // cout << "acks[call.node_id - 1][call.call_id] is: " << acks[call.node_id - 1][call.call_id] << ", quorum is: " << quorum << std::endl; 
             if (acks[call.node_id - 1][call.call_id] == (quorum))
             {
                 stabilizerWithAck();
@@ -459,7 +459,7 @@ public:
         }
         else
         {
-            cout << "acks[call.node_id - 1][call.call_id] is: " << acks[call.node_id - 1][call.call_id] << ", quorum-1 is: " << (quorum-1) << std::endl; 
+            // cout << "acks[call.node_id - 1][call.call_id] is: " << acks[call.node_id - 1][call.call_id] << ", quorum-1 is: " << (quorum-1) << std::endl; 
 
             if (acks[call.node_id - 1][call.call_id] == (quorum - 1))
             {
@@ -479,7 +479,7 @@ public:
             if (failed[i])
                 num_failed++;
 
-        cout << "stabilizerWithAck: num failed nodes: " << num_failed << std::endl;
+        // cout << "stabilizerWithAck: num failed nodes: " << num_failed << std::endl;
 
         quorum -= num_failed;
 #endif
