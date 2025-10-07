@@ -135,23 +135,6 @@ int main(int argc, char *argv[])
                                 std::chrono::high_resolution_clock::now().time_since_epoch())
                                 .count();
 
-    // Start failure detection thread
-    std::atomic<bool> running{true};
-    std::thread failure_detector([&, &hdl, &adjusted_expected]() {
-        // Wait for initial sync to complete before starting failure detection
-        std::this_thread::sleep_for(std::chrono::seconds(15));
-        
-        while (running.load()) {
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-            
-            // Only check for failures if we're still actively processing operations
-            // Don't check if we're near completion
-            if (hdl->obj.waittobestable.load() < (adjusted_expected * 0.95)) {
-                hdl->checkForFailures(10);
-            }
-        }
-    });
-
 #ifdef FAILURE_MODE
     int adjusted_expected = expected_calls;
     
@@ -166,6 +149,27 @@ int main(int argc, char *argv[])
 #else
     int adjusted_expected = expected_calls;
 #endif
+
+    // Start failure detection thread
+    std::atomic<bool> running{true};
+    std::thread failure_detector([&]() {
+        // Wait for initial sync to complete before starting failure detection
+        std::this_thread::sleep_for(std::chrono::seconds(15));
+        
+        while (running.load()) {
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+            
+#ifdef FAILURE_MODE
+            // Only check for failures if we're still actively processing operations
+            // Don't check if we're near completion
+            if (hdl->obj.waittobestable.load() < (adjusted_expected * 0.95)) {
+                hdl->checkForFailures(10);
+            }
+#else
+            hdl->checkForFailures(10);
+#endif
+        }
+    });
 
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
