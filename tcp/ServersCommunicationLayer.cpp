@@ -52,6 +52,10 @@ public:
     void handleAllReceives();
     void closeAllSockets();
     void shutdown();
+    
+    // NEW: Methods for failure handling
+    int getAliveNodeCount();
+    std::vector<int> getAliveNodes();
 };
 
 // Get current timestamp for logging
@@ -97,7 +101,7 @@ ServersCommunicationLayer::ServersCommunicationLayer(int id, std::vector<string>
     this->handler = hdl;
     this->initcounter = initcounter;
     acceptingSocket = new TCPServerSocket(ports[id - 1]);
-
+    
     // Initialize all nodes as alive
     for (int i = 1; i <= hosts.size(); i++)
     {
@@ -130,6 +134,7 @@ ServerConnection *ServersCommunicationLayer::getConnection(int remoteId)
     return ret;
 }
 
+// MODIFIED: Now notifies Handler about failures
 void ServersCommunicationLayer::markNodeDown(int nodeId)
 {
     bool wasAlive = node_status[nodeId].load();
@@ -138,6 +143,14 @@ void ServersCommunicationLayer::markNodeDown(int nodeId)
     if (wasAlive) {
         std::cout << "[" << getTimestamp() << "] [Node " << id << "] STATUS CHANGE: "
                   << "Node " << nodeId << " marked as DOWN" << std::endl;
+        
+        // CRITICAL: Notify Handler about the failure
+        if (handler != nullptr) {
+            handler->setfailurenode(nodeId);
+            std::cout << "[" << getTimestamp() << "] [Node " << id 
+                      << "] Notified Handler about Node " << nodeId 
+                      << " failure. Alive nodes: " << getAliveNodeCount() << std::endl;
+        }
     }
 }
 
@@ -154,6 +167,32 @@ void ServersCommunicationLayer::markNodeUp(int nodeId)
 bool ServersCommunicationLayer::isNodeAlive(int nodeId)
 {
     return node_status[nodeId].load();
+}
+
+// NEW: Get count of alive nodes
+int ServersCommunicationLayer::getAliveNodeCount()
+{
+    std::lock_guard<std::mutex> lock(connections_mutex);
+    int count = 0;
+    for (auto& pair : node_status) {
+        if (pair.second.load()) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// NEW: Get list of alive node IDs
+std::vector<int> ServersCommunicationLayer::getAliveNodes()
+{
+    std::lock_guard<std::mutex> lock(connections_mutex);
+    std::vector<int> alive;
+    for (auto& pair : node_status) {
+        if (pair.second.load()) {
+            alive.push_back(pair.first);
+        }
+    }
+    return alive;
 }
 
 // broadcasts the message to others (does not send it to self)

@@ -458,11 +458,12 @@ public:
             }
         }
     }
+
     void stabilizerWithAck()
     {
         bool can_unqued = false;
         int quorum = number_of_nodes - 1;
-#ifdef FAILURE_MODE
+    #ifdef FAILURE_MODE
         int num_failed = 0;
         for (int i = 0; i < number_of_nodes; ++i)
             if (failed[i])
@@ -471,11 +472,11 @@ public:
         cout<< "stabilizerWithAck: num failed nodes: " << num_failed << std::endl;
 
         quorum -= num_failed;
-#endif
+    #endif
         {
             std::lock_guard<std::mutex> lock(mtx);
             int i = obj.stable_state.index;
-            // std::lock_guard<std::mutex> lock(mtx_ack);
+            
             if (i >= executionList.size())
             {
                 return;
@@ -504,9 +505,22 @@ public:
                 }
                 if (stable)
                 {
-                    if (executionList[i].node_id == node_id && executionList[i].call_id == (expected_calls / number_of_nodes) - 1)
+                    // FIXED: Account for failures when checking last call
+    #ifdef FAILURE_MODE
+                    int expected_local_calls = expected_calls / number_of_nodes;
+                    if (executionList[i].node_id == node_id && 
+                        executionList[i].call_id == expected_local_calls - 1)
                         last_call_stable.store(true);
-                    std::cout << "Exe - stablized - type: " << executionList[i].type << " and value1: " << executionList[i].value1 << " -stable index " << obj.stable_state.index<< "que size"<< priorityQueue.size()<< std::endl;
+    #else
+                    if (executionList[i].node_id == node_id && 
+                        executionList[i].call_id == (expected_calls / number_of_nodes) - 1)
+                        last_call_stable.store(true);
+    #endif
+                    
+                    std::cout << "Exe - stablized - type: " << executionList[i].type 
+                            << " and value1: " << executionList[i].value1 
+                            << " -stable index " << obj.stable_state.index
+                            << " que size " << priorityQueue.size() << std::endl;
                     obj.updateStableState(executionList[i]);
                     i++;
                     obj.stable_state.index++;
