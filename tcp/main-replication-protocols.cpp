@@ -189,6 +189,7 @@ int main(int argc, char *argv[])
         // Debug progress
         static int last_printed = 0;
         static auto last_print_time = std::chrono::steady_clock::now();
+        static int stuck_counter = 0;
         int current = hdl->obj.waittobestable.load();
         auto now = std::chrono::steady_clock::now();
         
@@ -206,30 +207,63 @@ int main(int argc, char *argv[])
             std::cout << "[DYNAMIC ADJUST] Node failure detected. New adjusted_expected: " 
                       << adjusted_expected << " (reduced by " << estimated_lost_ops << ")" << std::endl;
             last_failed_count = current_failed_count;
+            last_print_time = now; // Reset timer after adjustment
+            stuck_counter = 0;
         }
+        
+        // Emergency exit: if no progress for 3 consecutive checks with failures detected
+        static int last_progress = 0;
+        if (current == last_progress && current_failed_count > 0) {
+            stuck_counter++;
+            if (stuck_counter >= 3) {
+                std::cout << "[EMERGENCY EXIT] No progress for " << (stuck_counter * 5) 
+                          << " seconds with " << current_failed_count << " failed nodes. "
+                          << "Completing at " << current << "/" << adjusted_expected << std::endl;
+                break;
+            }
+        } else {
+            stuck_counter = 0;
+        }
+        last_progress = current;
 #endif
         
         if (current % 100 == 0 && current != last_printed) {
             std::cout << "[PROGRESS] waittobestable: " << current 
-                      << " / " << adjusted_expected << std::endl;
+                      << " / " << adjusted_expected 
+                      << " (failed: " << hdl->failed_count.load() << ")" << std::endl;
             last_printed = current;
             last_print_time = now;
         }
         
-        // If stuck for more than 10 seconds, print debug info and potentially break
-        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() > 10) {
+        // If stuck for more than 10 seconds, print debug info
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count();
+        if (elapsed > 10) {
             std::cout << "[STUCK] waittobestable: " << current << " / " << adjusted_expected 
                       << ", stable_index: " << hdl->obj.stable_state.index 
                       << ", execution_list_size: " << hdl->executionList.size() 
                       << ", failed_nodes: " << hdl->failed_count.load() << std::endl;
             
 #ifdef FAILURE_MODE
-            // If we've detected failures and been stuck, the killed node likely didn't finish
-            // Adjust expectations and continue
-            if (hdl->failed_count.load() > 0 && current >= (adjusted_expected * 0.85)) {
-                std::cout << "[AUTO-COMPLETE] Close enough to target with " 
-                          << hdl->failed_count.load() << " failed nodes. Completing..." << std::endl;
-                break;
+            // If we've detected failures and been stuck, adjust and possibly exit
+            if (hdl->failed_count.load() > 0) {
+                // Calculate how close we are to realistic completion
+                int ops_per_node = expected_calls / numnodes;
+                int max_missing = ops_per_node * hdl->failed_count.load();
+                int realistic_target = expected_calls - max_missing;
+                
+                std::cout << "[ANALYSIS] Realistic target with failures: " << realistic_target 
+                          << ", current: " << current << std::endl;
+                
+                if (current >= realistic_target * 0.95) {
+                    std::cout << "[AUTO-COMPLETE] Within 95% of realistic target. Completing..." << std::endl;
+                    break;
+                }
+                
+                // Adjust expectations if not already done
+                if (adjusted_expected > realistic_target) {
+                    adjusted_expected = realistic_target;
+                    std::cout << "[FORCED ADJUST] Adjusting to realistic target: " << adjusted_expected << std::endl;
+                }
             }
 #endif
             last_print_time = now;
