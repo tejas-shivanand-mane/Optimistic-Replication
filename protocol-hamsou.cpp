@@ -178,6 +178,9 @@ public:
     {
         if (node_id_remote > 0 && node_id_remote <= number_of_nodes) {
             last_heartbeat[node_id_remote - 1] = std::chrono::high_resolution_clock::now();
+            std::cout << "[DEBUG] Updated heartbeat for node " << node_id_remote << std::endl;
+        } else {
+            std::cout << "[ERROR] Invalid node_id_remote: " << node_id_remote << std::endl;
         }
     }
     
@@ -193,6 +196,10 @@ public:
             
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
                 now - last_heartbeat[i]).count();
+            
+            // Debug output
+            std::cout << "[DEBUG] Node " << (i + 1) << " - Last heartbeat: " << elapsed 
+                      << " seconds ago (timeout at " << timeout_seconds << "s)" << std::endl;
             
             if (elapsed > timeout_seconds) {
                 failed[i] = true;
