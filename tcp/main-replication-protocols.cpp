@@ -206,9 +206,18 @@ int main(int argc, char *argv[])
             
             std::cout << "[DYNAMIC ADJUST] Node failure detected. New adjusted_expected: " 
                       << adjusted_expected << " (reduced by " << estimated_lost_ops << ")" << std::endl;
+            std::cout.flush();
             last_failed_count = current_failed_count;
             last_print_time = now; // Reset timer after adjustment
             stuck_counter = 0;
+            
+            // Check if we've already passed the adjusted target
+            if (current >= adjusted_expected) {
+                std::cout << "[IMMEDIATE EXIT] Already past adjusted target. Current: " 
+                          << current << ", Target: " << adjusted_expected << std::endl;
+                std::cout.flush();
+                break;
+            }
         }
         
         // Emergency exit: if no progress for 3 consecutive checks with failures detected
@@ -219,6 +228,7 @@ int main(int argc, char *argv[])
                 std::cout << "[EMERGENCY EXIT] No progress for " << (stuck_counter * 5) 
                           << " seconds with " << current_failed_count << " failed nodes. "
                           << "Completing at " << current << "/" << adjusted_expected << std::endl;
+                std::cout.flush();
                 break;
             }
         } else {
@@ -242,6 +252,7 @@ int main(int argc, char *argv[])
                       << ", stable_index: " << hdl->obj.stable_state.index 
                       << ", execution_list_size: " << hdl->executionList.size() 
                       << ", failed_nodes: " << hdl->failed_count.load() << std::endl;
+            std::cout.flush();
             
 #ifdef FAILURE_MODE
             // If we've detected failures and been stuck, adjust and possibly exit
@@ -267,6 +278,11 @@ int main(int argc, char *argv[])
             }
 #endif
             last_print_time = now;
+        }
+        
+        // Small sleep to prevent busy-waiting when no work to do
+        if (it == calls.end() && ack_index >= std::atomic_load(&hdl->obj.send_ack_call_list)->size()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
 #ifdef CRDT_MESSAGE_PASSING
