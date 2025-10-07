@@ -190,7 +190,7 @@ void ServerConnection::receive()
 			Buffer *buff = socket->receive(length);
 			if (buff == nullptr)
 				break;
-			cout << "checkkk222" << "this remote " << this->remoteId << endl;
+			// cout << "checkkk222" << "this remote " << this->remoteId << endl;
 			if (strcmp(buff->getContent(), "init") == 0)
 			{
 				std::cout << "in receive: " << buff->getContent() << std::endl;

@@ -296,9 +296,9 @@ void ServersCommunicationLayer::broadcast(string &message)
 
 void ServersCommunicationLayer::broadcast(Buffer *message)
 {
-    std::cout << "[BROADCAST_BUFFER] Node " << id << " - Starting broadcast (buffer)" << std::endl;
+    // std::cout << "[BROADCAST_BUFFER] Node " << id << " - Starting broadcast (buffer)" << std::endl;
     std::lock_guard<std::mutex> lock(connections_mutex);
-    std::cout << "[BROADCAST_BUFFER] Node " << id << " - Acquired mutex, broadcasting to " << connections.size() << " connections" << std::endl;
+    // std::cout << "[BROADCAST_BUFFER] Node " << id << " - Acquired mutex, broadcasting to " << connections.size() << " connections" << std::endl;
     
     int alive_count = 0;
     int dead_count = 0;
@@ -306,13 +306,13 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
     for (auto it : connections)
     {
         if (it.first == id) {
-            std::cout << "[BROADCAST_BUFFER] Node " << id << " - Skipping self (node " << it.first << ")" << std::endl;
+            // std::cout << "[BROADCAST_BUFFER] Node " << id << " - Skipping self (node " << it.first << ")" << std::endl;
             continue;  // Skip self
         }
         
         // Skip known dead nodes
         if (!isNodeAlive(it.first)) {
-            std::cout << "[BROADCAST_BUFFER] Node " << id << " - Skipping dead node " << it.first << std::endl;
+            // std::cout << "[BROADCAST_BUFFER] Node " << id << " - Skipping dead node " << it.first << std::endl;
             dead_count++;
             continue;
         }
@@ -323,14 +323,14 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
         {
             try
             {
-                std::cout << "[BROADCAST_BUFFER] Node " << id << " - Sending to node " << it.first << std::endl;
+                // std::cout << "[BROADCAST_BUFFER] Node " << id << " - Sending to node " << it.first << std::endl;
                 conn->send(message);  // FIXED: Use conn directly
-                std::cout << "[BROADCAST_BUFFER] Node " << id << " - Successfully sent to node " << it.first << std::endl;
+                // std::cout << "[BROADCAST_BUFFER] Node " << id << " - Successfully sent to node " << it.first << std::endl;
                 alive_count++;
             }
             catch (Exception *e)
             {
-                std::cout << "[BROADCAST_BUFFER] Node " << id << " - EXCEPTION sending to node " << it.first << ": " << e->getMessage() << std::endl;
+                // std::cout << "[BROADCAST_BUFFER] Node " << id << " - EXCEPTION sending to node " << it.first << ": " << e->getMessage() << std::endl;
                 logFailure(it.first, "broadcast (buffer)");
                 markNodeDown(it.first);
                 dead_count++;
@@ -339,7 +339,7 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
         }
     }
     
-    std::cout << "[BROADCAST_BUFFER] Node " << id << " - Broadcast complete: alive=" << alive_count 
+    // std::cout << "[BROADCAST_BUFFER] Node " << id << " - Broadcast complete: alive=" << alive_count 
               << ", dead=" << dead_count << std::endl;
     
     // Log broadcast summary if there are failures
