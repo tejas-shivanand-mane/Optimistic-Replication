@@ -143,7 +143,12 @@ int main(int argc, char *argv[])
         
         while (running.load()) {
             std::this_thread::sleep_for(std::chrono::seconds(5));
-            hdl->checkForFailures(10); // 10 second timeout
+            
+            // Only check for failures if we're still actively processing operations
+            // Don't check if we're near completion
+            if (hdl->obj.waittobestable.load() < (adjusted_expected * 0.95)) {
+                hdl->checkForFailures(10);
+            }
         }
     });
 
@@ -164,6 +169,12 @@ int main(int argc, char *argv[])
 
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
+        // Debug progress
+        if (hdl->obj.waittobestable.load() % 100 == 0) {
+            std::cout << "[PROGRESS] waittobestable: " << hdl->obj.waittobestable.load() 
+                      << " / " << adjusted_expected << std::endl;
+        }
+        
 #ifdef CRDT_MESSAGE_PASSING
         if (it != calls.end())
         {
