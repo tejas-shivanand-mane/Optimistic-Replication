@@ -132,13 +132,24 @@ int main(int argc, char *argv[])
                                 .count();
 
 #ifdef FAILURE_MODE
+    // Calculate adjusted expected based on actual failure
     int adjusted_expected = expected_calls;
     
-    // If this is the failed node, adjust expectations
-    if (id == failed_node) {
-        adjusted_expected -= (expected_calls / numnodes) / 2;
-        std::cout << "This node will fail mid-execution. Adjusted expected: " 
-                  << adjusted_expected << std::endl;
+    // Only adjust if a node actually fails (not for failed_node=0)
+    if (failed_node > 0 && failed_node <= numnodes) {
+        // If this is the failed node, it will only complete half its work
+        if (id == failed_node) {
+            adjusted_expected -= (expected_calls / numnodes) / 2;
+            std::cout << "This node will fail mid-execution. Adjusted expected: " 
+                      << adjusted_expected << std::endl;
+        }
+        // All nodes expect fewer total operations due to the failure
+        else {
+            // Expect full operations minus what the failed node won't complete
+            adjusted_expected = expected_calls - ((expected_calls / numnodes) / 2);
+            std::cout << "Adjusted expected due to node " << failed_node << " failure: " 
+                      << adjusted_expected << std::endl;
+        }
     }
     
     bool failed_node_detected = false;
