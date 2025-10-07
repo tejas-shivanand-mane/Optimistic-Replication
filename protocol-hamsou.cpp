@@ -97,12 +97,13 @@ public:
         for (int i = 0; i < num_nodes; ++i)
             failed[i]=false;
     }
-    
     size_t serializeCalls(Call call, uint8_t *buffer)
     {
         std::string type = call.type;
         int value1 = call.value1;
         int value2 = call.value2;
+        // int value1 = test;
+        // int value2 = test;
         test++;
         int node_id = call.node_id;
         int call_id = call.call_id;
@@ -151,94 +152,21 @@ public:
         auto length = reinterpret_cast<uint64_t *>(start - len - sizeof(uint64_t));
         *length = len;
 
+        // Debug print to verify serialized buffer
+        // std::cout << "Serialized buffer: ";
+        // for (size_t i = 0; i < len; ++i)
+        //{
+        // std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
+        //}
+        // std::cout << std::endl;
+
         return len + sizeof(uint64_t) + 2 * sizeof(uint64_t);
     }
-    
-    // MODIFIED: Now triggers re-evaluation
     void setfailurenode(int id)
     {
         failed[id - 1] = true;
-        cout << "[FAILURE_HANDLING] Node " << id << " marked as failed" << endl;
-        
-        // NEW: Re-evaluate all pending operations with new quorum
-        reEvaluateStabilityAfterFailure(id);
+        cout<< "test failure node: " << failed[id - 1] << endl;
     }
-    
-    // NEW FUNCTION: Re-evaluate stability after a node failure
-    void reEvaluateStabilityAfterFailure(int failed_node_id)
-    {
-        std::lock_guard<std::mutex> lock(mtx);
-        
-        std::cout << "[FAILURE_HANDLING] Re-evaluating stability after node " 
-                  << failed_node_id << " failure" << std::endl;
-        
-        // Recalculate quorum
-        int quorum = number_of_nodes - 1;
-        int num_failed = 0;
-        for (int i = 0; i < number_of_nodes; ++i)
-            if (failed[i])
-                num_failed++;
-        quorum -= num_failed;
-        
-        std::cout << "[FAILURE_HANDLING] New quorum: " << quorum 
-                  << " (failed nodes: " << num_failed << ")" << std::endl;
-        
-        // Re-check all unstable operations with new quorum
-        int i = obj.stable_state.index;
-        bool found_new_stable = false;
-        
-        while (i < executionList.size())
-        {
-            bool now_stable = false;
-            
-            // Skip operations from failed nodes
-            if (failed[executionList[i].node_id - 1])
-            {
-                std::cout << "[FAILURE_HANDLING] Skipping operation from failed node " 
-                          << executionList[i].node_id << std::endl;
-                i++;
-                continue;
-            }
-            
-            if (executionList[i].node_id == node_id)
-            {
-                if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= quorum)
-                {
-                    now_stable = true;
-                }
-            }
-            else
-            {
-                // For remote operations, check if they have enough acks
-                if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum - 1))
-                {
-                    now_stable = true;
-                }
-            }
-            
-            if (now_stable)
-            {
-                std::cout << "[FAILURE_HANDLING] Operation " << i 
-                          << " (from node " << executionList[i].node_id 
-                          << ", call_id " << executionList[i].call_id
-                          << ") now stable with adjusted quorum" << std::endl;
-                found_new_stable = true;
-                i++;
-            }
-            else
-            {
-                break;  // Stop at first unstable operation
-            }
-        }
-        
-        if (found_new_stable)
-        {
-            std::cout << "[FAILURE_HANDLING] Found operations that can now stabilize, triggering stabilization" << std::endl;
-            // Trigger normal stabilization process
-            stabilizerWithAck();
-        }
-    }
-    
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
         uint8_t *start = buffer + sizeof(uint64_t);
@@ -278,11 +206,18 @@ public:
             start += sizeof(vc);
         }
 
+        // Debug print to verify deserialized call_vector_clock
+        // std::cout << "Deserialized call_vector_clock: ";
+        // for (int vc : call_vector_clock)
+        //{
+        // std::cout << vc << " ";
+        //}
+        // std::cout << std::endl;
+
         // Assign the deserialized values to the call object
         call = Call(type, value1, value2, node_id, call_id, stable);
         call.call_vector_clock = call_vector_clock;
     }
-    
     void localHandler(Call &call, bool &flag, bool &permiss, int &stableindex)
     {
         std::lock_guard<std::mutex> lock(mtx);
@@ -299,8 +234,9 @@ public:
                 if (i >= executionList.size())
                 {
                     std::cerr << "Index out of bounds: localHandler" << std::endl;
-                    return;
+                    return; // Handle out-of-bounds access
                 }
+                // flag = checkOrder(call.type, executionList[i].type, obj.topologicalOrder);
                 if (obj.fastisreachablelocal(call, executionList[i]))
                     flag = false;
                 if (!flag)
@@ -315,7 +251,7 @@ public:
                     if (i >= number_of_nodes || i >= vector_clock.size())
                     {
                         std::cerr << "Index out of bounds: localHandler" << std::endl;
-                        return;
+                        return; // Handle out-of-bounds access
                     }
                     call.call_vector_clock.resize(number_of_nodes, 0);
                     call.call_vector_clock[i] = vector_clock[i];
@@ -342,7 +278,7 @@ public:
                 return i;
             }
         }
-        return -1;
+        return -1; // Return -1 if no match is found
     }
 
     bool queueHandler(bool addorRemove, Call remoteCall)
@@ -356,6 +292,7 @@ public:
                 if (addorRemove)
                 {
                     priorityQueue.push(remoteCall);
+                    // std::cout << "Exe - queued1 - type: " << remoteCall.type << " and value1: " << remoteCall.value1 << std::endl;
                 }
                 return true;
             }
@@ -370,6 +307,7 @@ public:
                     if (addorRemove)
                     {
                         priorityQueue.push(remoteCall);
+                        // std::cout << "Exe - queued2 - type: " << remoteCall.type << " and value1: " << remoteCall.value1 << std::endl;
                     }
                     return true;
                 }
@@ -383,10 +321,13 @@ public:
     {
 #ifndef CRDT
         bool add_queue_flag = false;
+        // std::cout << "Exe - by remote1 - type: " << call.type << " and value1: " << call.value1 << " Vector-Clocks: " << vector_clock[0] << "-" << vector_clock[1] << "-" << vector_clock[2] << vector_clock[3]<< " -call id -" << call.call_id << " -current index " << obj.current_state.index << " size " << executionList.size() << "bool "<<add_queue_flag<< "node id"<< call.node_id<< std::endl;
         add_queue_flag = queueHandler(addorRemove, call);
+        // cout<< "check1"<<std::endl;
         if (!add_queue_flag)
         {
             {
+                // cout<< "check2"<<std::endl;
                 std::lock_guard<std::mutex> lock(mtx);
                 auto pos = std::next(executionList.begin(), obj.stable_state.index);
                 auto end = executionList.end();
@@ -405,6 +346,7 @@ public:
                 obj.current_state.index++;
                 obj.updateCurrentState(call);
                 vector_clock[call.node_id - 1]++;
+                // std::cout << "Exe - by remote2 - type: " << call.type << " and value1: " << call.value1 << " Vector-Clocks: " << vector_clock[0] << "-" << vector_clock[1] << "-" << vector_clock[2] << vector_clock[3]<< " -call id -" << call.call_id << " -current index " << obj.current_state.index << " pos " << index << " size " << executionList.size() << std::endl;
             }
             obj.send_ack = true;
             obj.send_ack_call.type = "Ack";
@@ -436,39 +378,86 @@ public:
         return false;
     }
 
+    /*
+        void stabilizerWithVC()
+        {
+            // std::lock_guard<std::mutex> lock(mtx);
+            bool stable_flag = true;
+            int i = obj.stable_state.index;
+            // for (int i = tmp_stable_state_index; i < executionList.size(); ++i) // Eric, in execution list from stabe state index, we should check call vector clock to be less than all the last update of remote processes vector clock
+            //{
+            if (i >= executionList.size())
+                std::cerr << "Index out of bounds: executionList" << std::endl;
+            return;
+            // then consider it stabe. it it is new stable state then chek remote handler on qued calls.
+            for (int j = 0; j < number_of_nodes; j++)
+            {
+
+                if (j != node_id - 1)
+                { // just check it for remote nodes
+                    for (int k = 0; k < number_of_nodes; k++)
+                    {
+                        if (executionList[i].call_vector_clock[k] > remote_verctor_clocks[j][k])
+                        {
+                            stable_flag = false;
+                            break;
+                        }
+                    }
+                }
+                if (stable_flag == false)
+                    break;
+            }
+            if (stable_flag)
+            {
+                // std::lock_guard<std::mutex> lock(mtx);                // now consider this call as stable
+                obj.stable_state.index++; // todo update sets and otherthings
+                obj.waittobestable.store(obj.waittobestable.load() + 1);
+                // std::cout << "stable index " << obj.stable_state.index<< std::endl;
+                std::cout << "Exe - stablized - type: " << executionList[i].type << " and value1: " << executionList[i].value1 << " -stable index " << obj.stable_state.index << std::endl;
+                obj.updateStableState(executionList[i]);
+                if (!queuedList.empty())
+                {
+                    bool remove_flag;
+                    remove_flag = remoteHandler(false, queuedList.front());
+                    if (remove_flag)
+                        queuedList.erase(queuedList.begin());
+                }
+            }
+            //}
+        }*/
     void updateAcksTable(Call call)
     {
         int quorum = number_of_nodes - 1;
         acks[call.node_id - 1][call.call_id]++;
-
+// std::cout << "Exe - by update ack - type: " << call.type << " and value1: " << " -call id -" << call.call_id << "acks -- " << acks[call.node_id - 1][call.call_id] << "qu size  "<< priorityQueue.size()<<std::endl;
 #ifdef FAILURE_MODE
         int num_failed = 0;
         for (int i = 0; i < number_of_nodes; ++i)
             if (failed[i])
                 num_failed++;
-        cout << "updateAcksTable: num failed nodes: " << num_failed << std::endl;
+        cout<< "updateAcksTable: num failed nodes: " << num_failed << std::endl;
         quorum -= num_failed;
 #endif
         if (call.node_id == node_id)
         { 
-            cout << "acks[call.node_id - 1][call.call_id] is: " << acks[call.node_id - 1][call.call_id] << ", quorum is: " << quorum << std::endl; 
+            cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum is: " << quorum << std::endl; 
             if (acks[call.node_id - 1][call.call_id] == (quorum))
             {
+                // std::lock_guard<std::mutex> lock(mtx);
                 stabilizerWithAck();
             }
         }
         else
         {
-            cout << "acks[call.node_id - 1][call.call_id] is: " << acks[call.node_id - 1][call.call_id] << ", quorum-1 is: " << (quorum-1) << std::endl; 
+            cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum-1 is: " << (quorum-1) << std::endl; 
 
             if (acks[call.node_id - 1][call.call_id] == (quorum - 1))
             {
+                // std::lock_guard<std::mutex> lock(mtx);
                 stabilizerWithAck();
             }
         }
     }
-    
-    // MODIFIED: Enhanced to handle failed nodes
     void stabilizerWithAck()
     {
         bool can_unqued = false;
@@ -479,14 +468,14 @@ public:
             if (failed[i])
                 num_failed++;
 
-        cout << "stabilizerWithAck: num failed nodes: " << num_failed << std::endl;
+        cout<< "stabilizerWithAck: num failed nodes: " << num_failed << std::endl;
 
         quorum -= num_failed;
 #endif
         {
             std::lock_guard<std::mutex> lock(mtx);
             int i = obj.stable_state.index;
-            
+            // std::lock_guard<std::mutex> lock(mtx_ack);
             if (i >= executionList.size())
             {
                 return;
@@ -497,24 +486,9 @@ public:
             while (stable && i < executionList.size())
             {
                 stable = false;
-                
-                // NEW: Skip operations from failed nodes that will never stabilize
-#ifdef FAILURE_MODE
-                if (failed[executionList[i].node_id - 1])
-                {
-                    std::cout << "[FAILURE_HANDLING] Auto-stabilizing operation from failed node " 
-                              << executionList[i].node_id << std::endl;
-                    i++;
-                    obj.stable_state.index++;
-                    obj.waittobestable.store(obj.waittobestable.load() + 1);
-                    stable = true;  // Continue to next operation
-                    continue;
-                }
-#endif
-                
                 if (executionList[i].node_id == node_id)
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= quorum)
+                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] == (quorum))
                     {
                         stable = true;
                         can_unqued = true;
@@ -522,31 +496,17 @@ public:
                 }
                 else
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum - 1))
+                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] == (quorum - 1))
                     {
                         stable = true;
                         can_unqued = true;
                     }
                 }
-                
                 if (stable)
                 {
-                    // Check if this is the last call for this node
-#ifdef FAILURE_MODE
-                    int expected_local_calls = expected_calls / number_of_nodes;
-                    if (executionList[i].node_id == node_id && 
-                        executionList[i].call_id == expected_local_calls - 1)
+                    if (executionList[i].node_id == node_id && executionList[i].call_id == (expected_calls / number_of_nodes) - 1)
                         last_call_stable.store(true);
-#else
-                    if (executionList[i].node_id == node_id && 
-                        executionList[i].call_id == (expected_calls / number_of_nodes) - 1)
-                        last_call_stable.store(true);
-#endif
-                    
-                    std::cout << "Exe - stablized - type: " << executionList[i].type 
-                              << " and value1: " << executionList[i].value1 
-                              << " -stable index " << obj.stable_state.index
-                              << " que size " << priorityQueue.size() << std::endl;
+                    std::cout << "Exe - stablized - type: " << executionList[i].type << " and value1: " << executionList[i].value1 << " -stable index " << obj.stable_state.index<< "que size"<< priorityQueue.size()<< std::endl;
                     obj.updateStableState(executionList[i]);
                     i++;
                     obj.stable_state.index++;
@@ -579,14 +539,14 @@ public:
             if (i >= calls.size())
             {
                 std::cerr << "Index out of bounds: findCallIndex" << std::endl;
-                return -1;
+                return -1; // Handle out-of-bounds access
             }
             if (calls[i].type == type)
             {
                 return i;
             }
         }
-        return -1;
+        return -1; // Return -1 if no match is found
     }
 
     bool checkOrder(const std::string &type1, const std::string &type2, const std::vector<Call> &calls)
@@ -603,6 +563,12 @@ public:
             return false;
         }
     }
+
+    // void internalExecute(Call &call)
+    //{
+
+    // localHandler(call);
+    //}
 
     void internalDownstreamExecute(Call call)
     {
