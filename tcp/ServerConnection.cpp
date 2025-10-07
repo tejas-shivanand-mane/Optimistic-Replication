@@ -43,6 +43,8 @@ private:
 
 	Socket *socket;
 	Handler *handler;
+	bool connection_failed;  // Add flag to track if connection is dead
+	
 #ifdef FAILURE_MODE
 	std::chrono::steady_clock::time_point last_recv_time;
 #endif
@@ -64,6 +66,7 @@ public:
 	void reconnect(Socket *socket);
 	void receive();
 	void closeSocket();
+	bool hasConnectionFailed() { return connection_failed; }  // Check if connection is dead
 };
 
 ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter)
@@ -75,6 +78,8 @@ ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::ve
 	this->socket = socket;
 	this->handler = hdl;
 	this->initcounter = initcounter;
+	this->connection_failed = false;  // Initialize flag
+	
 #ifdef FAILURE_MODE
 	this->last_recv_time = std::chrono::steady_clock::now();
 #endif
@@ -141,6 +146,10 @@ void ServerConnection::reconnect(Socket *newSocket)
 
 void ServerConnection::receive()
 {
+	// Don't try to receive if connection already failed
+	if (connection_failed)
+		return;
+		
 #ifdef FAILURE_MODE
 	static std::chrono::steady_clock::time_point last_print_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
@@ -222,7 +231,9 @@ void ServerConnection::receive()
 			std::cout << "Node " << this->remoteId << " marked as failed due to socket exception: " 
 			          << error_msg << std::endl;
 			handler->setfailurenode(this->remoteId);
-			// Return gracefully - don't throw, connection will be cleaned up by ServersCommunicationLayer
+			connection_failed = true;  // Mark connection as permanently failed
+			closeSocket();  // Close the socket
+			// Return gracefully - don't throw, let handleAllReceives skip this connection
 			return;
 		}
 #endif
