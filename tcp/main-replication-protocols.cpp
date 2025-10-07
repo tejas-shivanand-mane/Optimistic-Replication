@@ -150,16 +150,13 @@ int main(int argc, char *argv[])
     auto getAdjustedExpectedCalls = [&]() -> int {
     #ifdef FAILURE_MODE
         int alive_nodes = sc->getAliveNodeCount();
-        // expected_calls is total writes (720)
-        // Reduce proportionally based on failed nodes
-        // Original: expected_calls - (expected_calls / numnodes) / 2
-        // Dynamic: adjust based on actual alive nodes
+        // expected_calls = 720 total writes
+        // If a node fails, we lose its writes
         int writes_per_node = expected_calls / numnodes;  // 720 / 4 = 180
-        int failed_nodes = numnodes - alive_nodes;
-        int lost_writes = (writes_per_node / 2) * failed_nodes;  // Half of each failed node's writes
-        return expected_calls - lost_writes;
+        int adjusted = writes_per_node * alive_nodes;     // 180 * 4 = 720 (or less if nodes fail)
+        return adjusted;
     #else
-        return expected_calls;
+        return expected_calls;  // 720
     #endif
     };
 
