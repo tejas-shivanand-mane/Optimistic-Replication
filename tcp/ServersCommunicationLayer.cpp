@@ -6,6 +6,7 @@
 #include <iostream>
 #include <chrono>
 #include <iomanip>
+#include <sstream>
 
 #include "Thread.cpp"
 #include "ServerConnection.cpp"
@@ -53,7 +54,7 @@ public:
     void closeAllSockets();
     void shutdown();
     
-    // NEW: Methods for failure handling
+    // Methods for failure handling
     int getAliveNodeCount();
     std::vector<int> getAliveNodes();
 };
@@ -169,7 +170,7 @@ bool ServersCommunicationLayer::isNodeAlive(int nodeId)
     return node_status[nodeId].load();
 }
 
-// NEW: Get count of alive nodes
+// Get count of alive nodes
 int ServersCommunicationLayer::getAliveNodeCount()
 {
     std::lock_guard<std::mutex> lock(connections_mutex);
@@ -182,7 +183,7 @@ int ServersCommunicationLayer::getAliveNodeCount()
     return count;
 }
 
-// NEW: Get list of alive node IDs
+// Get list of alive node IDs
 std::vector<int> ServersCommunicationLayer::getAliveNodes()
 {
     std::lock_guard<std::mutex> lock(connections_mutex);
