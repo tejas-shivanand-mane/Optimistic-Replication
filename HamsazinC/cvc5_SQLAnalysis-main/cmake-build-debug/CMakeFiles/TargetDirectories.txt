@@ -1,0 +1,3 @@
+/Users/admin/CLionProjects/TPC-cpp/cmake-build-debug/CMakeFiles/TPC_cpp.dir
+/Users/admin/CLionProjects/TPC-cpp/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/admin/CLionProjects/TPC-cpp/cmake-build-debug/CMakeFiles/rebuild_cache.dir
