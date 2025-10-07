@@ -269,12 +269,14 @@ void ServersCommunicationLayer::broadcast(string &message)
             continue;
         }
         
-        if (getConnection(it.first) != NULL)
+        // FIX: Use it.second directly instead of calling getConnection()
+        ServerConnection* conn = it.second;
+        if (conn != NULL)
         {
             try
             {
                 std::cout << "[BROADCAST_STRING] Node " << id << " - Sending to node " << it.first << std::endl;
-                getConnection(it.first)->send(message);
+                conn->send(message);  // FIXED: Use conn directly
                 std::cout << "[BROADCAST_STRING] Node " << id << " - Successfully sent to node " << it.first << std::endl;
                 sent_count++;
             }
@@ -315,12 +317,14 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
             continue;
         }
         
-        if (getConnection(it.first) != NULL)
+        // FIX: Use it.second directly instead of calling getConnection()
+        ServerConnection* conn = it.second;
+        if (conn != NULL)
         {
             try
             {
                 std::cout << "[BROADCAST_BUFFER] Node " << id << " - Sending to node " << it.first << std::endl;
-                getConnection(it.first)->send(message);
+                conn->send(message);  // FIXED: Use conn directly
                 std::cout << "[BROADCAST_BUFFER] Node " << id << " - Successfully sent to node " << it.first << std::endl;
                 alive_count++;
             }
