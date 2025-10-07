@@ -430,9 +430,9 @@ void ServersCommunicationLayer::handleAllReceives()
     int iteration = 0;
     while (running.load())
     {
-        if (iteration % 1000 == 0) {
-            // std::cout << "[HANDLE_RECEIVES] Node " << id << " - Receive loop iteration " << iteration << std::endl;
-        }
+        // if (iteration % 1000 == 0) {
+        //     // std::cout << "[HANDLE_RECEIVES] Node " << id << " - Receive loop iteration " << iteration << std::endl;
+        // }
         iteration++;
         
         std::lock_guard<std::mutex> lock(connections_mutex);
@@ -448,9 +448,9 @@ void ServersCommunicationLayer::handleAllReceives()
             }
             
             if (!isNodeAlive(nodeId)) {
-                if (iteration % 1000 == 0) {
-                    // std::cout << "[HANDLE_RECEIVES] Node " << id << " - Skipping dead node " << nodeId << std::endl;
-                }
+                // if (iteration % 1000 == 0) {
+                //     // std::cout << "[HANDLE_RECEIVES] Node " << id << " - Skipping dead node " << nodeId << std::endl;
+                // }
                 continue;
             }
             
