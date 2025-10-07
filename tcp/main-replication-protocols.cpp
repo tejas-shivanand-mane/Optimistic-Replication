@@ -16,6 +16,10 @@ std::atomic<int> *initcounter;
 
 int main(int argc, char *argv[])
 {
+    // Disable output buffering for immediate logging
+    std::cout.setf(std::ios::unitbuf);
+    std::cerr.setf(std::ios::unitbuf);
+    
     std::vector<string> hosts;
     int id = std::stoi(argv[1]);
     initcounter = new std::atomic<int>;
@@ -183,9 +187,25 @@ int main(int argc, char *argv[])
 
     auto it = calls.begin();
     auto preit = calls.end();
+    
+    auto main_loop_start = std::chrono::steady_clock::now();
+    const int MAX_LOOP_TIME_SECONDS = 60; // Maximum time to wait
 
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
+        // Check for timeout
+        auto elapsed_total = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - main_loop_start).count();
+        
+        if (elapsed_total > MAX_LOOP_TIME_SECONDS) {
+            std::cout << "[TIMEOUT] Main loop exceeded " << MAX_LOOP_TIME_SECONDS 
+                      << " seconds. Current: " << hdl->obj.waittobestable.load() 
+                      << "/" << adjusted_expected 
+                      << ", Failed nodes: " << hdl->failed_count.load() << std::endl;
+            std::cout.flush();
+            break;
+        }
+        
         // Debug progress
         static int last_printed = 0;
         static auto last_print_time = std::chrono::steady_clock::now();
