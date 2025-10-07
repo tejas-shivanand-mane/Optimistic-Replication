@@ -216,7 +216,7 @@ bool ServersCommunicationLayer::isNodeAlive(int nodeId)
 // Get count of alive nodes
 int ServersCommunicationLayer::getAliveNodeCount()
 {
-    std::cout << "[GET_ALIVE_COUNT] Node " << id << " - Counting alive nodes" << std::endl;
+    // std::cout << "[GET_ALIVE_COUNT] Node " << id << " - Counting alive nodes" << std::endl;
     std::lock_guard<std::mutex> lock(connections_mutex);
     int count = 0;
     for (auto& pair : node_status) {
@@ -224,7 +224,7 @@ int ServersCommunicationLayer::getAliveNodeCount()
             count++;
         }
     }
-    std::cout << "[GET_ALIVE_COUNT] Node " << id << " - Found " << count << " alive nodes" << std::endl;
+    // std::cout << "[GET_ALIVE_COUNT] Node " << id << " - Found " << count << " alive nodes" << std::endl;
     return count;
 }
 
