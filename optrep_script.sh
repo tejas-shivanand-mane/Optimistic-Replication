@@ -6,7 +6,7 @@ usecase=$4
 
 sudo yum -y install gcc-c++
 sudo yum -y install unzip cmake
-unzip -n Optimistic-Replication.zip 
+# unzip -n Optimistic-Replication.zip 
 cd Optimistic-Replication/wellcoordination/benchmark/
 g++ ${usecase}-benchmark.cpp -o $usecase-benchmark-out
 cd ../
