@@ -125,12 +125,6 @@ int main(int argc, char *argv[])
     uint64_t local_start = std::chrono::duration_cast<std::chrono::microseconds>(
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
-    auto it = calls.begin();
-    auto preit = calls.end();
-    cout << "expected calls: " << expected_calls << endl;
-    cout << "adjusted_expected: " << adjusted_expected << endl;
-    cout << "Node " << id << " starting with " << calls.size() << " local operations" << endl;
-    
     int ops_rate = oppersecond;
     int op_interval_ns = 1e9 / ops_rate;
     uint64_t next_op_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -152,6 +146,14 @@ int main(int argc, char *argv[])
     int adjusted_expected = expected_calls;
 #endif
 
+    cout << "expected calls: " << expected_calls << endl;
+    cout << "adjusted_expected: " << adjusted_expected << endl;
+    cout << "Node " << id << " starting with " << calls.size() << " local operations" << endl;
+
+    cout << "expected calls: " << expected_calls << endl;
+    cout << "adjusted_expected: " << adjusted_expected << endl;
+    cout << "Node " << id << " starting with " << calls.size() << " local operations" << endl;
+
     // Start failure detection thread
     std::atomic<bool> running{true};
     std::thread failure_detector([&]() {
@@ -172,6 +174,9 @@ int main(int argc, char *argv[])
 #endif
         }
     });
+
+    auto it = calls.begin();
+    auto preit = calls.end();
 
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
