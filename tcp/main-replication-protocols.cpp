@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 
     // Start failure detection thread
     std::atomic<bool> running{true};
-    std::thread failure_detector([&]() {
+    std::thread failure_detector([&, &hdl, &adjusted_expected]() {
         // Wait for initial sync to complete before starting failure detection
         std::this_thread::sleep_for(std::chrono::seconds(15));
         
