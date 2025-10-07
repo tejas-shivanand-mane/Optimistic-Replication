@@ -213,17 +213,22 @@ void ServerConnection::receive()
 	}
 	catch (Exception *e)
 	{
+		std::string error_msg = e->getMessage();
+		delete e;
+		
 #ifdef FAILURE_MODE
 		if (activate_timeout)
 		{
 			std::cout << "Node " << this->remoteId << " marked as failed due to socket exception: " 
-			          << e->getMessage() << std::endl;
+			          << error_msg << std::endl;
 			handler->setfailurenode(this->remoteId);
+			// Return gracefully - don't throw, connection will be cleaned up by ServersCommunicationLayer
+			return;
 		}
-#else
-		std::cerr << "Receive failed: " << e->getMessage() << std::endl;
 #endif
-		delete e;
-		throw;
+		
+		// Only throw if not handled by failure mode
+		std::cerr << "Receive failed: " << error_msg << std::endl;
+		throw new Exception(error_msg);
 	}
 }
