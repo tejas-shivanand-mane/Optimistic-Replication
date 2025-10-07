@@ -140,6 +140,12 @@ int main(int argc, char *argv[])
         std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     const uint64_t MAX_WAIT_MS = 180000; // 3 minutes timeout
 
+
+
+
+
+
+
     // Helper function for dynamic expected calls
     auto getAdjustedExpectedCalls = [&]() -> int {
 #ifdef FAILURE_MODE
@@ -159,6 +165,26 @@ int main(int argc, char *argv[])
 
     // Progress tracking
     int last_logged_stable = -1;
+
+
+
+
+
+    std::cout << "[DEBUG] Node " << id << " starting main loop:" << std::endl;
+    std::cout << "  - calls.size() = " << calls.size() << std::endl;
+    std::cout << "  - numop = " << numop << std::endl;
+    std::cout << "  - numnodes = " << numnodes << std::endl;
+    std::cout << "  - expected_calls = " << expected_calls << std::endl;
+    std::cout << "  - getAdjustedExpectedCalls() = " << getAdjustedExpectedCalls() << std::endl;
+    std::cout << "  - Initial waittobestable = " << hdl->obj.waittobestable.load() << std::endl;
+
+
+
+
+
+
+
+
     
     // Main loop with dynamic termination condition
     while (hdl->obj.waittobestable.load() < getAdjustedExpectedCalls())
