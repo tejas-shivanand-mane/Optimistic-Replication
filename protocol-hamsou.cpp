@@ -174,8 +174,10 @@ public:
         failed[id - 1] = true;
         cout<< "test failure node: " << failed[id - 1] << endl;
 
-        failed_nodes.push_back(id);
         quorum--;
+        stabilizerWithAck();
+        failed_nodes.push_back(id);
+
     }
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
