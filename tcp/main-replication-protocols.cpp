@@ -291,6 +291,7 @@ int main(int argc, char *argv[])
             if (req.type != "Read")
             {
 #if defined(OPTIMISTIC_REPLICATION)
+                std::cout << "wait is : " << wait << std::endl;
                 if (!wait)
                 {
                     hdl->localHandler(req, send_flag, permiss, stableindex);

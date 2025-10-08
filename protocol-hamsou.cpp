@@ -64,6 +64,9 @@ public:
     int node_id;
     int number_of_nodes;
     int quorum;
+    int last_failed_count;
+    int failed_count;
+
     int expected_calls;
     int write_percentage;
     std::vector<int> vector_clock;
@@ -91,7 +94,7 @@ public:
         node_id = id;
         number_of_nodes = num_nodes;
         quorum = number_of_nodes - 1;
-        
+
         vector_clock.resize(num_nodes, 0);
         remote_verctor_clocks.resize(num_nodes, std::vector<int>(num_nodes, 0));
         acks.resize(num_nodes, std::vector<int>(350000, 0));
