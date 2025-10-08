@@ -75,6 +75,7 @@ public:
     std::vector<std::vector<int>> acks;
 
     int failed[64];
+    std::vector<int> failed_nodes;
 
     // std::vector<Call> queuedList;
     int test;
@@ -172,6 +173,8 @@ public:
     {
         failed[id - 1] = true;
         cout<< "test failure node: " << failed[id - 1] << endl;
+
+        failed_nodes.push_back(id);
     }
     void deserializeCalls(uint8_t *buffer, Call &call)
     {

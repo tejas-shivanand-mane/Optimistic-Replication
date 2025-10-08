@@ -180,6 +180,10 @@ int main(int argc, char *argv[])
 // #ifdef FAILURE_MODE
 //     expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
 // #endif
+
+
+    int last_failed_count = hdl->failed_nodes.size();
+
     while (hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
@@ -291,7 +295,12 @@ int main(int argc, char *argv[])
             if (req.type != "Read")
             {
 #if defined(OPTIMISTIC_REPLICATION)
-                std::cout << "wait is : " << wait << std::endl;
+                // std::cout << "wait is : " << wait << std::endl;
+                if (hdl->failed_nodes.size()> last_failed_count)
+                {
+                    wait = false;
+                    last_failed_count = hdl->failed_nodes.size();
+                }
                 if (!wait)
                 {
                     hdl->localHandler(req, send_flag, permiss, stableindex);
