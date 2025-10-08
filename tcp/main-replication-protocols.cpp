@@ -170,6 +170,18 @@ int main(int argc, char *argv[])
     
     auto main_loop_start = std::chrono::steady_clock::now();
     const int MAX_LOOP_TIME_SECONDS = 180;
+    
+    // Throughput tracking
+    std::thread throughput_logger([&]() {
+        auto start = std::chrono::steady_clock::now();
+        while (running.load()) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::steady_clock::now() - start).count();
+            std::cout << "THROUGHPUT," << elapsed << "," << sent << "," 
+                      << hdl->obj.waittobestable.load() << std::endl;
+        }
+    });
 
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
@@ -386,6 +398,14 @@ int main(int argc, char *argv[])
 
                         sc->broadcast(buff.get());
                         sent++;
+                        
+                        // Throughput measurement: print every 100 ops
+                        if (sent % 100 == 0) {
+                            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                                std::chrono::steady_clock::now() - main_loop_start).count();
+                            std::cout << "THROUGHPUT," << elapsed << "," << sent << std::endl;
+                        }
+                        
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
@@ -455,6 +475,9 @@ int main(int argc, char *argv[])
     running.store(false);
     if (failure_detector.joinable()) {
         failure_detector.join();
+    }
+    if (throughput_logger.joinable()) {
+        throughput_logger.join();
     }
 
     std::cout << "issued " << sent << " operations" << std::endl;
