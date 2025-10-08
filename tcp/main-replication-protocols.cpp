@@ -440,7 +440,10 @@ int main(int argc, char *argv[])
                                                       early_start_time;
                         delay = 10;
                         wait = false;
-                        std::cout<< "Hello T" << std::endl;
+                        
+                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::steady_clock::now() - main_loop_start).count();
+                        std::cout<< "Time: " << ct << "; ops_count: "<< std::distance(calls.begin(), it) << std::endl;
 
                     }
                     else if (permiss)
@@ -456,8 +459,10 @@ int main(int argc, char *argv[])
                                                           .count() -
                                                       early_start_time;
 
-                        std::cout<< "Hello T" << std::endl;
-                        
+                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::steady_clock::now() - main_loop_start).count();
+                        std::cout<< "Time: " << ct << "; ops_count: "<< std::distance(calls.begin(), it) << std::endl;
+
                     }
                 }
 #endif
@@ -487,7 +492,9 @@ int main(int argc, char *argv[])
                                                   std::chrono::high_resolution_clock::now().time_since_epoch())
                                                   .count() -
                                               early_start_time;
-                std::cout<< "Hello T" << std::endl;
+                auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::steady_clock::now() - main_loop_start).count();
+                std::cout<< "Time: " << ct << "; ops_count: "<< std::distance(calls.begin(), it) << std::endl;
                 
             }
         }
