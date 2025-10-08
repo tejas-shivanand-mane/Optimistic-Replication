@@ -20,12 +20,13 @@ private:
     std::vector<string> hosts;
     int *ports;
     std::atomic<int> *initcounter;
+    std::atomic<bool> *crash_detection_enabled;
 
     ServerConnection *getConnection(int remoteId);
     void establishConnection(Socket *socket, int remoteId);
 
 public:
-    ServersCommunicationLayer(int id, std::vector<string> hosts, int *portNumbers, Handler *hdl, std::atomic<int> *initcounter);
+    ServersCommunicationLayer(int id, std::vector<string> hosts, int *portNumbers, Handler *hdl, std::atomic<int> *initcounter, std::atomic<bool> *crash_enabled);
 
     ~ServersCommunicationLayer();
 
@@ -44,13 +45,14 @@ ServersCommunicationLayer::~ServersCommunicationLayer()
     delete acceptingSocket;
 }
 
-ServersCommunicationLayer::ServersCommunicationLayer(int id, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter)
+ServersCommunicationLayer::ServersCommunicationLayer(int id, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter, std::atomic<bool> *crash_enabled)
 {
     this->id = id;
     this->hosts = hosts;
     this->ports = ports;
     this->handler = hdl;
     this->initcounter = initcounter;
+    this->crash_detection_enabled = crash_enabled;
     acceptingSocket = new TCPServerSocket(ports[id - 1]);
     connectAll();
 }
@@ -68,7 +70,7 @@ ServerConnection *ServersCommunicationLayer::getConnection(int remoteId)
     ServerConnection *ret;
     if (connections.find(remoteId) == connections.end())
     {
-        ret = new ServerConnection(id, remoteId, NULL, hosts, ports, handler, initcounter);
+        ret = new ServerConnection(id, remoteId, NULL, hosts, ports, handler, initcounter, crash_detection_enabled);
         connections.insert(std::make_pair(remoteId, ret));
     }
     else

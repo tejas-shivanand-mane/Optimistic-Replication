@@ -67,8 +67,11 @@ int main(int argc, char *argv[])
         // object = new Project();
     }
     
+    // Global flag to enable/disable crash detection - start disabled
+    std::atomic<bool> crash_detection_enabled{false};
+    
     int syn_counter = 0;
-    ServersCommunicationLayer *sc = new ServersCommunicationLayer(id, hosts, ports, hdl, initcounter);
+    ServersCommunicationLayer *sc = new ServersCommunicationLayer(id, hosts, ports, hdl, initcounter, &crash_detection_enabled);
     std::cout << "Starting ServersCommunicationLayer"<< std::endl;
     sc->start();
 
@@ -150,6 +153,9 @@ int main(int argc, char *argv[])
     
     // Heartbeat sender - sends "I'm alive" every 2 seconds
     std::thread heartbeat_sender([&]() {
+        // Wait for workload to start before sending heartbeats
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        
         while (running.load()) {
             std::this_thread::sleep_for(std::chrono::seconds(2));
             
@@ -168,11 +174,18 @@ int main(int argc, char *argv[])
     
     // Failure detector - checks if nodes stopped sending heartbeats
     std::thread failure_detector([&]() {
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        // Wait longer before starting crash detection - let system stabilize
+        std::this_thread::sleep_for(std::chrono::seconds(15));
+        
+        std::cout << "[CRASH DETECTION] Now enabled" << std::endl;
+        crash_detection_enabled.store(true);
         
         while (running.load()) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
-            hdl->checkForFailures(8); // 8 second timeout = 4 missed heartbeats
+            
+            if (crash_detection_enabled.load()) {
+                hdl->checkForFailures(8); // 8 second timeout = 4 missed heartbeats
+            }
         }
     });
 
@@ -355,11 +368,6 @@ int main(int argc, char *argv[])
                                                       early_start_time;
                         delay = 10;
                         wait = false;
-
-                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                        std::chrono::steady_clock::now() - main_loop_start).count();
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
-
                     }
                     else if (permiss)
                     {
@@ -373,12 +381,6 @@ int main(int argc, char *argv[])
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
-
-
-                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                        std::chrono::steady_clock::now() - main_loop_start).count();
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
-
                     }
                 }
 #endif
@@ -408,12 +410,6 @@ int main(int argc, char *argv[])
                                                   std::chrono::high_resolution_clock::now().time_since_epoch())
                                                   .count() -
                                               early_start_time;
-
-
-                auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                std::chrono::steady_clock::now() - main_loop_start).count();
-                std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl; 
-                                            
             }
         }
 

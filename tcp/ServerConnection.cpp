@@ -7,6 +7,8 @@
 #include <atomic>
 
 bool activate_timeout = true;
+std::atomic<bool> *crash_detection_enabled_ptr = nullptr;
+
 #define OPTIMISTIC_REPLICATION
 // #define ECROS
 // #define CRDT_MESSAGE_PASSING
@@ -44,6 +46,7 @@ private:
 	Socket *socket;
 	Handler *handler;
 	bool connection_failed;
+	std::atomic<bool> *crash_detection_enabled;
 	
 #ifdef FAILURE_MODE
 	std::chrono::steady_clock::time_point last_recv_time;
@@ -56,7 +59,7 @@ private:
 	bool isToConnect();
 
 public:
-	ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter);
+	ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter, std::atomic<bool> *crash_enabled);
 
 	~ServerConnection();
 
@@ -69,7 +72,7 @@ public:
 	bool hasConnectionFailed() { return connection_failed; }
 };
 
-ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter)
+ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter, std::atomic<bool> *crash_enabled)
 {
 	this->id = id;
 	this->remoteId = remoteId;
@@ -79,6 +82,7 @@ ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::ve
 	this->handler = hdl;
 	this->initcounter = initcounter;
 	this->connection_failed = false;
+	this->crash_detection_enabled = crash_enabled;
 	
 #ifdef FAILURE_MODE
 	this->last_recv_time = std::chrono::steady_clock::now();
@@ -223,13 +227,21 @@ void ServerConnection::receive()
 		delete e;
 		
 #ifdef FAILURE_MODE
-		if (activate_timeout)
+		// Only mark as crashed if crash detection is enabled (after startup)
+		if (activate_timeout && crash_detection_enabled != nullptr && crash_detection_enabled->load())
 		{
 			std::cout << "[CRASH] Node " << this->remoteId << " connection lost: " 
 			          << error_msg << std::endl;
 			handler->setfailurenode(this->remoteId);
 			connection_failed = true;
 			closeSocket();
+			return;
+		}
+		else
+		{
+			// During startup, just log and continue
+			// std::cout << "[WARN] Connection issue with node " << this->remoteId 
+			//           << " (crash detection not yet enabled): " << error_msg << std::endl;
 			return;
 		}
 #endif
