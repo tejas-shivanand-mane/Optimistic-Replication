@@ -172,16 +172,16 @@ int main(int argc, char *argv[])
     const int MAX_LOOP_TIME_SECONDS = 180;
     
     // Throughput tracking
-    std::thread throughput_logger([&]() {
-        auto start = std::chrono::steady_clock::now();
-        while (running.load()) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-                std::chrono::steady_clock::now() - start).count();
-            std::cout << "THROUGHPUT," << elapsed << "," << sent << "," 
-                      << hdl->obj.waittobestable.load() << std::endl;
-        }
-    });
+    // std::thread throughput_logger([&]() {
+    //     auto start = std::chrono::steady_clock::now();
+    //     while (running.load()) {
+    //         std::this_thread::sleep_for(std::chrono::seconds(1));
+    //         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+    //             std::chrono::steady_clock::now() - start).count();
+    //         std::cout << "THROUGHPUT," << elapsed << "," << sent << "," 
+    //                   << hdl->obj.waittobestable.load() << std::endl;
+    //     }
+    // });
 
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
@@ -240,8 +240,8 @@ int main(int argc, char *argv[])
             */
             
             if (stuck_counter % 6 == 0) {  // Print every 30 seconds
-                std::cout << "[WARNING] Stuck for " << (stuck_counter * 5) 
-                          << " seconds at " << current << "/" << adjusted_expected << std::endl;
+                // std::cout << "[WARNING] Stuck for " << (stuck_counter * 5) 
+                        //   << " seconds at " << current << "/" << adjusted_expected << std::endl;
             }
         } else {
             stuck_counter = 0;
@@ -424,6 +424,11 @@ int main(int argc, char *argv[])
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
+
+
+                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::steady_clock::now() - main_loop_start).count();
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
                     }
                 }
 #endif
@@ -474,9 +479,9 @@ int main(int argc, char *argv[])
     if (failure_detector.joinable()) {
         failure_detector.join();
     }
-    if (throughput_logger.joinable()) {
-        throughput_logger.join();
-    }
+    // if (throughput_logger.joinable()) {
+    //     throughput_logger.join();
+    // }
 
     std::cout << "issued " << sent << " operations" << std::endl;
 
