@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
     auto preit = calls.end();
     
     auto main_loop_start = std::chrono::steady_clock::now();
-    const int MAX_LOOP_TIME_SECONDS = 60; // Maximum time to wait
+    const int MAX_LOOP_TIME_SECONDS = 180; // Maximum time to wait
 
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
@@ -440,7 +440,7 @@ int main(int argc, char *argv[])
                                                       early_start_time;
                         delay = 10;
                         wait = false;
-                        
+
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                         std::chrono::steady_clock::now() - main_loop_start).count();
                         std::cout<< "Time: " << ct << "; ops_count: "<< std::distance(calls.begin(), it) << std::endl;
