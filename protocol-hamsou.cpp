@@ -16,13 +16,11 @@
 // #define MOVIE
 // #define COURSEWARE
 
-
-// #define CRDT // we need this if we want to run CRDTs Use Cases. Then need to select one of following options.
+// #define CRDT
 // #define OPCRDTCOUNTER
-//  #define OPCRDTGSET
-//  #define OPCRDTREG
+// #define OPCRDTGSET
+// #define OPCRDTREG
 
-// Define the Handler class
 class Handler
 {
 public:
@@ -81,7 +79,6 @@ public:
     int test;
     std::priority_queue<Call, std::vector<Call>, std::function<bool(const Call &, const Call &)>> priorityQueue;
 
-    // Default constructor
     Handler() : vector_clock(), remote_verctor_clocks(),
                 priorityQueue([this](const Call &a, const Call &b)
                               { return this->obj.compareVectorClocks(a.call_vector_clock, b.call_vector_clock) > 0; }) {}
@@ -178,7 +175,6 @@ public:
         }
 
         uint64_t len = start - temp;
-
         auto length = reinterpret_cast<uint64_t *>(start - len - sizeof(uint64_t));
         *length = len;
 
@@ -194,26 +190,24 @@ public:
             
             int actual_ops_from_failed = highest_call_from_node[id - 1].load();
             
-            std::cout << "Node " << id << " marked as FAILED. Total failed nodes: " 
-                      << failed_count.load() << std::endl;
-            std::cout << "Node " << id << " completed " << actual_ops_from_failed 
-                      << " operations before failure" << std::endl;
+            std::cout << "\n========================================" << std::endl;
+            std::cout << "[CRASH DETECTED] Node " << id << " has crashed" << std::endl;
+            std::cout << "Operations completed before crash: " << actual_ops_from_failed << std::endl;
+            std::cout << "Total crashed nodes: " << failed_count.load() << std::endl;
+            std::cout << "========================================\n" << std::endl;
         }
     }
     
-    // Update heartbeat for a node (call this when receiving messages)
+    // Update heartbeat for a node
     void updateHeartbeat(int node_id_remote)
     {
         if (node_id_remote > 0 && node_id_remote <= number_of_nodes) {
             last_heartbeat[node_id_remote - 1] = std::chrono::high_resolution_clock::now();
-            // Debug removed for cleaner logs
-        } else {
-            std::cout << "[ERROR] Invalid node_id_remote: " << node_id_remote << std::endl;
         }
     }
     
-    // Check for timed-out nodes (call periodically)
-    void checkForFailures(int timeout_seconds = 10)
+    // Check for crashed nodes (no heartbeat for timeout_seconds)
+    void checkForFailures(int timeout_seconds = 8)
     {
         auto now = std::chrono::high_resolution_clock::now();
         std::lock_guard<std::mutex> lock(failure_mtx);
@@ -228,30 +222,26 @@ public:
             if (elapsed > timeout_seconds) {
                 failed[i] = true;
                 failed_count.fetch_add(1);
-                std::cout << "Node " << (i + 1) << " TIMEOUT detected. Total failed: " 
-                          << failed_count.load() << std::endl;
+                
+                int actual_ops = highest_call_from_node[i].load();
+                
+                std::cout << "\n========================================" << std::endl;
+                std::cout << "[CRASH TIMEOUT] Node " << (i + 1) << " stopped responding" << std::endl;
+                std::cout << "Last heartbeat: " << elapsed << " seconds ago" << std::endl;
+                std::cout << "Operations before crash: " << actual_ops << std::endl;
+                std::cout << "Total crashed nodes: " << failed_count.load() << std::endl;
+                std::cout << "========================================\n" << std::endl;
             }
         }
     }
     
-    // Get dynamic quorum based on current failures
+    // For crash tolerance, quorum is just (N - f) where f = failed nodes
+    // We need majority of ALIVE nodes
     int getQuorum()
     {
-        int num_failed = failed_count.load();
-        int quorum = number_of_nodes - 1 - num_failed;
-        
-        // Ensure we can still reach consensus
-        if (quorum < (number_of_nodes / 2)) {
-            std::cerr << "WARNING: Cannot reach quorum. Failed nodes: " << num_failed 
-                      << ", Active nodes: " << (number_of_nodes - num_failed) << std::endl;
-        }
-        return std::max(quorum, 1); // At least 1 ack needed
-    }
-    
-    // Add method to handle init messages
-    void handleInitMessage(int remote_node_id)
-    {
-        updateHeartbeat(remote_node_id);
+        int alive_nodes = number_of_nodes - failed_count.load();
+        int quorum = alive_nodes - 1; // All other alive nodes
+        return std::max(quorum, 1);
     }
     
     void deserializeCalls(uint8_t *buffer, Call &call)
@@ -293,7 +283,6 @@ public:
             start += sizeof(vc);
         }
 
-        // Assign the deserialized values to the call object
         call = Call(type, value1, value2, node_id, call_id, stable);
         call.call_vector_clock = call_vector_clock;
     }
@@ -432,19 +421,17 @@ public:
                 vector_clock[call.node_id - 1]++;
             }
             
-            // Only send ack if the node hasn't failed
-            if (!failed[call.node_id - 1]) {
-                obj.send_ack = true;
-                obj.send_ack_call.type = "Ack";
-                obj.send_ack_call.node_id = call.node_id;
-                obj.send_ack_call.call_id = call.call_id;
-                obj.send_ack_call.value1 = call.value1;
+            // Send ack (even if originating node crashed - others need it)
+            obj.send_ack = true;
+            obj.send_ack_call.type = "Ack";
+            obj.send_ack_call.node_id = call.node_id;
+            obj.send_ack_call.call_id = call.call_id;
+            obj.send_ack_call.value1 = call.value1;
 
-                auto new_ack_list = std::make_shared<std::vector<Call>>(*obj.send_ack_call_list);
-                new_ack_list->push_back(obj.send_ack_call);
-                std::atomic_store(&obj.send_ack_call_list, new_ack_list);
-                obj.ackindex.store(obj.ackindex.load() + 1);
-            }
+            auto new_ack_list = std::make_shared<std::vector<Call>>(*obj.send_ack_call_list);
+            new_ack_list->push_back(obj.send_ack_call);
+            std::atomic_store(&obj.send_ack_call_list, new_ack_list);
+            obj.ackindex.store(obj.ackindex.load() + 1);
             
             return true;
         }
@@ -470,23 +457,7 @@ public:
         int quorum = getQuorum();
         acks[call.node_id - 1][call.call_id]++;
         
-        std::cout << "Ack received - Node: " << call.node_id << ", Call: " << call.call_id 
-                  << ", Count: " << acks[call.node_id - 1][call.call_id] 
-                  << ", Required quorum: " << quorum << std::endl;
-        
-        bool should_stabilize = false;
-        
-        if (call.node_id == node_id) {
-            if (acks[call.node_id - 1][call.call_id] >= quorum) {
-                should_stabilize = true;
-            }
-        } else {
-            if (acks[call.node_id - 1][call.call_id] >= (quorum - 1)) {
-                should_stabilize = true;
-            }
-        }
-        
-        if (should_stabilize) {
+        if (acks[call.node_id - 1][call.call_id] >= quorum) {
             stabilizerWithAck();
         }
     }
@@ -511,34 +482,11 @@ public:
             {
                 stable = false;
                 
-                if (executionList[i].node_id == node_id)
+                // Simple crash tolerance: need quorum acks
+                if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= quorum)
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= quorum)
-                    {
-                        stable = true;
-                        can_unqued = true;
-                    }
-                }
-                else
-                {
-                    // Check if the originating node has failed
-                    if (failed[executionList[i].node_id - 1])
-                    {
-                        // For failed nodes, use adjusted quorum
-                        if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum - 1))
-                        {
-                            stable = true;
-                            can_unqued = true;
-                        }
-                    }
-                    else
-                    {
-                        if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum - 1))
-                        {
-                            stable = true;
-                            can_unqued = true;
-                        }
-                    }
+                    stable = true;
+                    can_unqued = true;
                 }
                 
                 if (stable)

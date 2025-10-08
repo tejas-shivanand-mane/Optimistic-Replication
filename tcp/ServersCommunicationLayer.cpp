@@ -97,8 +97,6 @@ void ServersCommunicationLayer::broadcast(string &message)
 
 void ServersCommunicationLayer::broadcast(Buffer *message)
 {
-    std::vector<int> failed_sends;
-    
     for (auto it : connections)
     {
         if (getConnection(it.first) != NULL)
@@ -107,9 +105,9 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
             {
                 if (it.first != id)
                 {
-                    // Check if node is already marked as failed in handler
+                    // Skip crashed nodes
                     if (handler != nullptr && handler->failed[it.first - 1]) {
-                        continue;  // Skip broadcasting to failed nodes
+                        continue;
                     }
                     
                     getConnection(it.first)->send(message);
@@ -118,19 +116,9 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
             catch (Exception *e)
             {
                 cout << "Send failed to node " << it.first << ": " << e->getMessage() << endl;
-                failed_sends.push_back(it.first);
                 delete e;
             }
         }
-    }
-    
-    // Report failed sends
-    if (!failed_sends.empty()) {
-        cout << "Failed to send to nodes: ";
-        for (int node_id : failed_sends) {
-            cout << node_id << " ";
-        }
-        cout << endl;
     }
 }
 
@@ -156,12 +144,9 @@ void ServersCommunicationLayer::run()
 
 void ServersCommunicationLayer::handleAllReceives()
 {
-    std::unordered_map<int, int> consecutive_failures;
-    const int MAX_FAILURES = 5;  // Mark as failed after 5 consecutive failures
-    
     while (true)
     {
-        for (auto it = connections.begin(); it != connections.end(); )
+        for (auto it = connections.begin(); it != connections.end(); ++it)
         {
             int remote_id = it->first;
             ServerConnection* conn = it->second;
@@ -170,52 +155,17 @@ void ServersCommunicationLayer::handleAllReceives()
             {
                 if (conn != nullptr && remote_id != id)
                 {
-                    conn->receive();
+                    // Skip if already marked as failed
+                    if (handler != nullptr && handler->failed[remote_id - 1]) {
+                        continue;
+                    }
                     
-                    // Reset failure counter on successful receive
-                    consecutive_failures[remote_id] = 0;
-                    ++it;
-                }
-                else
-                {
-                    ++it;
+                    conn->receive();
                 }
             }
             catch (Exception* e)
             {
-                cout << "Exception in receive from node " << remote_id 
-                     << ": " << e->getMessage() << endl;
-                
-                // Increment failure counter
-                consecutive_failures[remote_id]++;
-                
-                if (consecutive_failures[remote_id] >= MAX_FAILURES)
-                {
-                    cout << "Node " << remote_id << " exceeded failure threshold. "
-                         << "Marking as FAILED and removing connection." << endl;
-                    
-                    // Notify handler about the failure
-                    if (handler != nullptr) {
-                        handler->setfailurenode(remote_id);
-                    }
-                    
-                    // Clean up the connection
-                    if (conn != nullptr)
-                    {
-                        conn->closeSocket();
-                        delete conn;
-                    }
-                    
-                    it = connections.erase(it);
-                    consecutive_failures.erase(remote_id);
-                }
-                else
-                {
-                    cout << "Node " << remote_id << " failure count: " 
-                         << consecutive_failures[remote_id] << "/" << MAX_FAILURES << endl;
-                    ++it;
-                }
-                
+                // Exception already handled in ServerConnection::receive()
                 delete e;
             }
         }

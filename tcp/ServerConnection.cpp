@@ -43,7 +43,7 @@ private:
 
 	Socket *socket;
 	Handler *handler;
-	bool connection_failed;  // Add flag to track if connection is dead
+	bool connection_failed;
 	
 #ifdef FAILURE_MODE
 	std::chrono::steady_clock::time_point last_recv_time;
@@ -66,7 +66,7 @@ public:
 	void reconnect(Socket *socket);
 	void receive();
 	void closeSocket();
-	bool hasConnectionFailed() { return connection_failed; }  // Check if connection is dead
+	bool hasConnectionFailed() { return connection_failed; }
 };
 
 ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter)
@@ -78,7 +78,7 @@ ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::ve
 	this->socket = socket;
 	this->handler = hdl;
 	this->initcounter = initcounter;
-	this->connection_failed = false;  // Initialize flag
+	this->connection_failed = false;
 	
 #ifdef FAILURE_MODE
 	this->last_recv_time = std::chrono::steady_clock::now();
@@ -149,16 +149,6 @@ void ServerConnection::receive()
 	// Don't try to receive if connection already failed
 	if (connection_failed)
 		return;
-		
-#ifdef FAILURE_MODE
-	static std::chrono::steady_clock::time_point last_print_time = std::chrono::steady_clock::now();
-	auto now = std::chrono::steady_clock::now();
-	if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() >= 1)
-	{
-		std::cout << "[HB] Connection active to node " << this->remoteId << std::endl;
-		last_print_time = now;
-	}
-#endif
 
 	if (socket == nullptr)
 		return;
@@ -180,8 +170,15 @@ void ServerConnection::receive()
 			if (buff == nullptr)
 				break;
 			
-			// *** KEY FIX: Update heartbeat for ANY message received from this node ***
+			// Update heartbeat for ANY message received
 			handler->updateHeartbeat(this->remoteId);
+			
+			// Handle heartbeat messages
+			if (strcmp(buff->getContent(), "heartbeat") == 0)
+			{
+				// Just a heartbeat - already updated timestamp above
+				continue;
+			}
 			
 			if (strcmp(buff->getContent(), "init") == 0)
 			{
@@ -228,17 +225,15 @@ void ServerConnection::receive()
 #ifdef FAILURE_MODE
 		if (activate_timeout)
 		{
-			std::cout << "Node " << this->remoteId << " marked as failed due to socket exception: " 
+			std::cout << "[CRASH] Node " << this->remoteId << " connection lost: " 
 			          << error_msg << std::endl;
 			handler->setfailurenode(this->remoteId);
-			connection_failed = true;  // Mark connection as permanently failed
-			closeSocket();  // Close the socket
-			// Return gracefully - don't throw, let handleAllReceives skip this connection
+			connection_failed = true;
+			closeSocket();
 			return;
 		}
 #endif
 		
-		// Only throw if not handled by failure mode
 		std::cerr << "Receive failed: " << error_msg << std::endl;
 		throw new Exception(error_msg);
 	}
