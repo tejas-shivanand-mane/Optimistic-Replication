@@ -338,7 +338,8 @@ int main(int argc, char *argv[])
                                                       early_start_time;
 
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                        std::chrono::steady_clock::now() - main_loop_start).count();
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() - main_loop_start;
                         std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
 
 
@@ -376,9 +377,10 @@ int main(int argc, char *argv[])
                                                   .count() -
                                               early_start_time;
 
-                auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                std::chrono::steady_clock::now() - main_loop_start).count();
-                std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() - main_loop_start;
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
 
             }
             /*if(it==calls.end())
