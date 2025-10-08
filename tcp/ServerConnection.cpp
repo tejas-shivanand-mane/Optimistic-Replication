@@ -48,9 +48,9 @@ private:
 	Socket *socket;
 	// Receiver *receiver;
 	Handler *handler;
-#ifdef FAILURE_MODE
-	std::chrono::steady_clock::time_point last_recv_time;
-#endif
+// #ifdef FAILURE_MODE
+// 	std::chrono::steady_clock::time_point last_recv_time;
+// #endif
 
 	// int* syn_counter; // new added
 	//  Sender* sender;
@@ -85,9 +85,9 @@ ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::ve
 	// this->activate_timeout = false;
 	//  this->syn_counter = syn_counter;
 	this->initcounter = initcounter;
-#ifdef FAILURE_MODE
-	this->last_recv_time = std::chrono::steady_clock::now();
-#endif
+// #ifdef FAILURE_MODE
+// 	this->last_recv_time = std::chrono::steady_clock::now();
+// #endif
 	if (isToConnect())
 		createConnection();
 
@@ -161,15 +161,15 @@ void ServerConnection::reconnect(Socket *newSocket)
 
 void ServerConnection::receive()
 {
-#ifdef FAILURE_MODE
-	static std::chrono::steady_clock::time_point last_print_time = std::chrono::steady_clock::now();
-	auto now = std::chrono::steady_clock::now();
-	if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() >= 1)
-	{
-		std::cout << "[HB] Connection active to node " << this->remoteId << std::endl;
-		last_print_time = now;
-	}
-#endif
+// #ifdef FAILURE_MODE
+// 	static std::chrono::steady_clock::time_point last_print_time = std::chrono::steady_clock::now();
+// 	auto now = std::chrono::steady_clock::now();
+// 	if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() >= 1)
+// 	{
+// 		std::cout << "[HB] Connection active to node " << this->remoteId << std::endl;
+// 		last_print_time = now;
+// 	}
+// #endif
 
 	if (socket == nullptr)
 		return;
@@ -243,18 +243,18 @@ void ServerConnection::receive()
 		throw;
 
 
-#ifdef FAILURE_MODE
-		// std::string msg = e->getMessage();
-		// // if (activate_timeout)
-		// // if (msg.find("closed the socket") != std::string::npos && activate_timeout)
-		// {
-		// 	std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
-		// 	handler->setfailurenode(this->remoteId);
-		// 	activate_timeout = false; // Reset the flag after marking as failed
-		// }
-#else
-		std::cerr << "Receive failed:" << e->getMessage() << std::endl;
-#endif
+// #ifdef FAILURE_MODE
+// 		// std::string msg = e->getMessage();
+// 		// // if (activate_timeout)
+// 		// // if (msg.find("closed the socket") != std::string::npos && activate_timeout)
+// 		// {
+// 		// 	std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
+// 		// 	handler->setfailurenode(this->remoteId);
+// 		// 	activate_timeout = false; // Reset the flag after marking as failed
+// 		// }
+// #else
+// 		std::cerr << "Receive failed:" << e->getMessage() << std::endl;
+// #endif
 		delete e;
 	}
 }

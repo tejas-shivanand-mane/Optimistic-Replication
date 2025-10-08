@@ -177,9 +177,9 @@ int main(int argc, char *argv[])
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
     
-#ifdef FAILURE_MODE
-    expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
-#endif
+// #ifdef FAILURE_MODE
+//     expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
+// #endif
     while (hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
@@ -244,15 +244,15 @@ int main(int argc, char *argv[])
                               .count();
         if (it != calls.end())
         {
-#ifdef FAILURE_MODE
-            if (id == failed_node && std::distance(calls.begin(), it) >= calls.size() / 2)
-            {
-                std::cout << "Node " << id << " simulating failure mid-execution at call index "
-                          << std::distance(calls.begin(), it) << "\n";
-                // sc->closeAllSockets();
-                break;
-            }
-#endif
+// #ifdef FAILURE_MODE
+//             if (id == failed_node && std::distance(calls.begin(), it) >= calls.size() / 2)
+//             {
+//                 std::cout << "Node " << id << " simulating failure mid-execution at call index "
+//                           << std::distance(calls.begin(), it) << "\n";
+//                 // sc->closeAllSockets();
+//                 break;
+//             }
+// #endif
 
             if (preit != it)
             {
@@ -409,9 +409,9 @@ int main(int argc, char *argv[])
         std::cout << "total average response time in milliseconds: "
                   << (static_cast<double>(real_end_time - local_start) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000 << std::endl;
     std::cout << "early average response time in milliseconds: " << (static_cast<double>(early_response_time_totall) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000000 << std::endl;
-#ifdef FAILURE_MODE
-    numop -= (numop / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
-#endif
+// #ifdef FAILURE_MODE
+//     numop -= (numop / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
+// #endif
     if (ops_rate == 1e9)
         std::cout << "throughput: "
                   << (static_cast<double>(numop) / static_cast<double>(local_end - local_start)) * 1000 << std::endl;

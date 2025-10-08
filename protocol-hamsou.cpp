@@ -8,7 +8,7 @@
 #include "../wellcoordination/benchmark/op-crdt-gset.hpp"
 #include "../wellcoordination/benchmark/op-crdt-counter.hpp"
 
-#define FAILURE_MODE
+// #define FAILURE_MODE
 
 // #define PROJECT
 #define STACK
@@ -430,14 +430,14 @@ public:
         int quorum = number_of_nodes - 1;
         acks[call.node_id - 1][call.call_id]++;
 // std::cout << "Exe - by update ack - type: " << call.type << " and value1: " << " -call id -" << call.call_id << "acks -- " << acks[call.node_id - 1][call.call_id] << "qu size  "<< priorityQueue.size()<<std::endl;
-#ifdef FAILURE_MODE
-        int num_failed = 0;
-        for (int i = 0; i < number_of_nodes; ++i)
-            if (failed[i])
-                num_failed++;
-        cout<< "updateAcksTable: num failed nodes: " << num_failed << std::endl;
-        quorum -= num_failed;
-#endif
+// #ifdef FAILURE_MODE
+//         int num_failed = 0;
+//         for (int i = 0; i < number_of_nodes; ++i)
+//             if (failed[i])
+//                 num_failed++;
+//         cout<< "updateAcksTable: num failed nodes: " << num_failed << std::endl;
+//         quorum -= num_failed;
+// #endif
         if (call.node_id == node_id)
         { 
             cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum is: " << quorum << std::endl; 
@@ -462,16 +462,16 @@ public:
     {
         bool can_unqued = false;
         int quorum = number_of_nodes - 1;
-#ifdef FAILURE_MODE
-        int num_failed = 0;
-        for (int i = 0; i < number_of_nodes; ++i)
-            if (failed[i])
-                num_failed++;
+// #ifdef FAILURE_MODE
+//         int num_failed = 0;
+//         for (int i = 0; i < number_of_nodes; ++i)
+//             if (failed[i])
+//                 num_failed++;
 
-        cout<< "stabilizerWithAck: num failed nodes: " << num_failed << std::endl;
+//         cout<< "stabilizerWithAck: num failed nodes: " << num_failed << std::endl;
 
-        quorum -= num_failed;
-#endif
+//         quorum -= num_failed;
+// #endif
         {
             std::lock_guard<std::mutex> lock(mtx);
             int i = obj.stable_state.index;
