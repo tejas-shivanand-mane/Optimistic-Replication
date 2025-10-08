@@ -214,11 +214,22 @@ int main(int argc, char *argv[])
         static int last_progress = 0;
         if (current == last_progress && current_failed_count > 0) {
             stuck_counter++;
-            if (stuck_counter >= 3) {
+            // For large simulations, allow more time before emergency exit
+            int max_stuck_checks = 12;  // 12 * 5 seconds = 60 seconds
+            
+            // TEMPORARILY DISABLED for testing - uncomment to re-enable
+            /*
+            if (stuck_counter >= max_stuck_checks) {
                 std::cout << "[EMERGENCY EXIT] No progress for " << (stuck_counter * 5) 
                           << " seconds with " << current_failed_count << " failed nodes. "
                           << "Completing at " << current << "/" << adjusted_expected << std::endl;
                 break;
+            }
+            */
+            
+            if (stuck_counter % 6 == 0) {  // Print every 30 seconds
+                std::cout << "[WARNING] Stuck for " << (stuck_counter * 5) 
+                          << " seconds at " << current << "/" << adjusted_expected << std::endl;
             }
         } else {
             stuck_counter = 0;
