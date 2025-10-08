@@ -7,26 +7,26 @@
 #include <memory>
 
 #include "ServersCommunicationLayer.cpp"
+// #include "ServerConnection.cpp"
+
+// #include "../wellcoordination/benchmark/project.hpp"
+// #include "../protocol2-partialsyn.cpp"
 
 using namespace std;
 using namespace amirmohsen;
+
 
 std::atomic<int> *initcounter;
 
 int main(int argc, char *argv[])
 {
-    // Disable output buffering for immediate logging
-    std::cout.setf(std::ios::unitbuf);
-    std::cerr.setf(std::ios::unitbuf);
-    
+
+    // std::cout << "checkkk111" << std::endl;
     std::vector<string> hosts;
     int id = std::stoi(argv[1]);
     initcounter = new std::atomic<int>;
     initcounter->store(0);
-    
-    // Mark program start time for crash detection timing
-    auto program_start = std::chrono::steady_clock::now();
-    
+    // std::cout << "checkkk222" << std::endl;
     std::cout << "id: " << id << std::endl;
     int numnodes = std::stoi(argv[2]);
     std::cout << "nodnum: " << numnodes << std::endl;
@@ -53,42 +53,66 @@ int main(int argc, char *argv[])
     for (int i = 8; i < (8 + numnodes); i++)
     {
         std::string hoststr = argv[i];
+        // hoststr=hoststr+".clemson.cloudlab.us";
         std::cout << "hotsstr: " << hoststr << std::endl;
         hosts.push_back(hoststr);
     }
 
-    std::string loc = "/home/tejas/Optimistic-Replication/wellcoordination/workload/";
+    std::string loc =
+        "/home/tejas/Optimistic-Replication/wellcoordination/workload/"; /// scratch/user/u.js213354/
     loc += std::to_string(numnodes) + "-" + std::to_string(numop) + "-" +
            std::to_string(static_cast<int>(writep));
     loc += "/" + usecase + "/";
-    
-    Handler *hdl = new Handler();
+    //////////////////////////////////////
+    Handler *hdl = new Handler(); // Ensure this is properly initialized
+
     std::cout << "Starting Handler"<< std::endl;
+
 
     if (usecase == "project")
     {
         // object = new Project();
     }
-    
-    // Global flag to enable/disable crash detection - start disabled
-    std::atomic<bool> crash_detection_enabled{false};
-    
+    // object->setID(id)->setNumProcess(numnodes)->finalize();
+    //  start connections
     int syn_counter = 0;
-    ServersCommunicationLayer *sc = new ServersCommunicationLayer(id, hosts, ports, hdl, initcounter, &crash_detection_enabled);
+    ServersCommunicationLayer *sc = new ServersCommunicationLayer(id, hosts, ports, hdl, initcounter);
     std::cout << "Starting ServersCommunicationLayer"<< std::endl;
     sc->start();
+    // wait for all to connect
+    /*if(numnodes<=4)
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    else*/
 
-    std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3));
+    std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3)); // wait for all to connect
+    // std::this_thread::sleep_for(std::chrono::seconds(180));
 
+    // new added
     Call call;
-    std::vector<Call> calls;
+    std::vector<Call> calls; // new added
 
     int call_id = 0;
     int sent = 0;
     std::string line;
     int expected_calls = 0;
-    hdl->obj.readBenchFile((loc + std::to_string(id) + ".txt").c_str(), expected_calls, id, numnodes, call, calls);
+    hdl->obj.readBenchFile((loc + std::to_string(id) + ".txt").c_str(), expected_calls, id, numnodes, call, calls); // new added
     hdl->setVars(id, numnodes, expected_calls, writep);
+    /*
+    std::ifstream myfile;
+    myfile.open((loc + std::to_string(id) + ".txt").c_str());
+
+    std::vector<MethodCall> requests;
+    while (getline(myfile, line)) {
+        if (line.at(0) == '#') {
+        expected_calls = std::stoi(line.substr(1, line.size()));
+        continue;
+        }
+        std::string sequence_number =
+            std::to_string(id) + "-" + std::to_string(call_id++);
+        MethodCall call = ReplicatedObject::createCall(sequence_number, line);
+        requests.push_back(call);
+    }
+    */
 
     std::vector<uint8_t> payload_buffer;
     uint8_t *payload;
@@ -98,25 +122,31 @@ int main(int argc, char *argv[])
     payload_buffer.resize(256);
     payload = &payload_buffer[0];
 
-    // Begin sync phase
+    // begin sync phase-----------------------------------------------------------
+    // std::cout << "begin sync phase" << std::endl;
     std::string init = "init";
     std::vector<uint8_t> idVector(init.begin(), init.end());
-    idVector.push_back('\0');
+    idVector.push_back('\0'); // Ensure null-termination
     uint8_t *id_bytes = &idVector[0];
     uint64_t id_len = idVector.size();
     Buffer *initbuff = new Buffer();
     std::string initMsg(id_bytes, id_bytes + id_len);
+    // std::cout<<"check2222222"<<std::endl;
     initbuff->setContent(const_cast<char *>(initMsg.c_str()), id_len);
     sc->broadcast(initbuff);
-    
-    while (initcounter->load() != numnodes - 1);
-    
-    int delay = 10;
-    int maxDelay = 10000;
-    int ackdelay = 1000;
-    int ackmaxDelay = 8000;
+    while (initcounter->load() != numnodes - 1)
+        ;
+    //{
+    // std::cout<<initcounter->load()<<std::endl;
+    // std::this_thread::sleep_for(std::chrono::seconds(2));
+    //}
+    // std::cout << "end sync phase" << initcounter->load() << std::endl;
+    // end sync phase-------------------------------------------------------------
+    int delay = 10;         // Initial delay in microseconds
+    int maxDelay = 10000;   // Maximum delay in microseconds
+    int ackdelay = 1000;    // Initial delay in microseconds
+    int ackmaxDelay = 8000; // Maximum delay in microseconds
     std::cout << "started sending..." << std::endl;
-    
     int ack_index = 0;
     int expected_call_counter = 0;
     bool wait = false;
@@ -130,147 +160,30 @@ int main(int argc, char *argv[])
     uint64_t real_end_time = 0;
     bool overwritetime = true;
     bool onetimeprint = true;
-    
+    // Project pjc;
     uint64_t local_start = std::chrono::duration_cast<std::chrono::microseconds>(
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
-    
-    auto experiment_start = std::chrono::steady_clock::now();
-    
-    int ops_rate = oppersecond;
-    int op_interval_ns = 1e9 / ops_rate;
+    auto it = calls.begin();
+    auto preit = calls.end();
+    cout << "expected calls: " << expected_calls << endl;
+    int ops_rate = oppersecond;          // desired ops/sec  //To measure throughput set tihs to 1e9
+    int op_interval_ns = 1e9 / ops_rate; // nanoseconds per op
     uint64_t next_op_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                 std::chrono::high_resolution_clock::now().time_since_epoch())
                                 .count();
 
+    uint64_t main_loop_start = std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::high_resolution_clock::now().time_since_epoch())
+                               .count();
+    
 #ifdef FAILURE_MODE
-    int adjusted_expected = expected_calls;
-    std::cout << "Running in CRASH FAULT TOLERANCE mode" << std::endl;
-#else
-    int adjusted_expected = expected_calls;
+    expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
 #endif
-
-    cout << "expected calls: " << expected_calls << endl;
-    cout << "adjusted_expected: " << adjusted_expected << endl;
-    cout << "Node " << id << " starting with " << calls.size() << " local operations" << endl;
-
-    // Start heartbeat and failure detection threads
-    std::atomic<bool> running{true};
-    
-    // Heartbeat sender - sends "I'm alive" every 2 seconds
-    std::thread heartbeat_sender([&]() {
-        // Wait for workload to start before sending heartbeats
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-        
-        while (running.load()) {
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-            
-            std::string hb = "heartbeat";
-            std::vector<uint8_t> hbVector(hb.begin(), hb.end());
-            hbVector.push_back('\0');
-            uint8_t *hb_bytes = &hbVector[0];
-            uint64_t hb_len = hbVector.size();
-            Buffer *hbBuff = new Buffer();
-            std::string hbMsg(hb_bytes, hb_bytes + hb_len);
-            hbBuff->setContent(const_cast<char *>(hbMsg.c_str()), hb_len);
-            sc->broadcast(hbBuff);
-            delete hbBuff;
-        }
-    });
-    
-    // Failure detector - checks if nodes stopped sending heartbeats
-    std::thread failure_detector([&]() {
-        // Enable crash detection at T=35s from program start
-        // This is: 12s (sync) + 30s (your kill time) + ~3s buffer
-        // So it enables AFTER you kill node 3
-        int enable_at_seconds = (numnodes * 3) + 23; // sync time + 23s
-        
-        std::this_thread::sleep_for(std::chrono::seconds(enable_at_seconds));
-        
-        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::steady_clock::now() - program_start).count();
-        std::cout << "[CRASH DETECTION] Now enabled at T=" << elapsed << "s from program start" << std::endl;
-        crash_detection_enabled.store(true);
-        
-        while (running.load()) {
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-            
-            if (crash_detection_enabled.load()) {
-                hdl->checkForFailures(8); // 8 second timeout = 4 missed heartbeats
-            }
-        }
-    });
-
-    auto it = calls.begin();
-    auto preit = calls.end();
-    
-    auto main_loop_start = std::chrono::steady_clock::now();
-
-    while (hdl->obj.waittobestable.load() < adjusted_expected)
+    while (hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
-        static int last_printed = 0;
-        static auto last_print_time = std::chrono::steady_clock::now();
-        int current = hdl->obj.waittobestable.load();
-        auto now = std::chrono::steady_clock::now();
-        
-#ifdef FAILURE_MODE
-        static int last_failed_count = 0;
-        int current_failed_count = hdl->failed_count.load();
-        
-        // Check if a new crash was detected
-        if (current_failed_count > last_failed_count) {
-            // Recalculate expected based on actual operations from crashed nodes
-            int actual_expected = hdl->getActualExpectedOps();
-            adjusted_expected = actual_expected;
-            
-            std::cout << "\n========================================" << std::endl;
-            std::cout << "[MAIN LOOP] Crash detected - adjusting target" << std::endl;
-            std::cout << "[MAIN LOOP] Crashed nodes: " << current_failed_count << std::endl;
-            std::cout << "[MAIN LOOP] Old target: " << expected_calls << std::endl;
-            std::cout << "[MAIN LOOP] New target: " << adjusted_expected << std::endl;
-            std::cout << "[MAIN LOOP] Current progress: " << current << std::endl;
-            
-            // Show status of each node
-            for (int i = 0; i < numnodes; i++) {
-                std::cout << "[MAIN LOOP] Node " << (i+1) << ": " 
-                          << (hdl->failed[i] ? "CRASHED" : "ACTIVE") 
-                          << ", ops=" << hdl->highest_call_from_node[i].load() << std::endl;
-            }
-            std::cout << "========================================\n" << std::endl;
-            
-            last_failed_count = current_failed_count;
-            last_print_time = now;
-            
-            // Check if we've already reached the new target
-            if (current >= adjusted_expected) {
-                std::cout << "[COMPLETION] Reached adjusted target!" << std::endl;
-                break;
-            }
-        }
-#endif
-        
-        // Progress logging
-        if (current % 500 == 0 && current != last_printed) {
-            std::cout << "[PROGRESS] " << current << " / " << adjusted_expected 
-                      << " (crashed: " << hdl->failed_count.load() << ")" << std::endl;
-            last_printed = current;
-            last_print_time = now;
-        }
-        
-        // Stuck detection
-        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count();
-        if (elapsed > 10) {
-            std::cout << "[STATUS] current=" << current << "/" << adjusted_expected 
-                      << ", stable_index=" << hdl->obj.stable_state.index 
-                      << ", crashed=" << hdl->failed_count.load() << std::endl;
-            last_print_time = now;
-        }
-        
-        // Wait if no more work to do
-        if (it == calls.end() && ack_index >= std::atomic_load(&hdl->obj.send_ack_call_list)->size()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-        
+
+// std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
         if (it != calls.end())
         {
@@ -278,6 +191,7 @@ int main(int argc, char *argv[])
 
             if (req.type != "Read")
             {
+
                 auto length = hdl->obj.serializeCalls(req, payload);
                 std::string message(payload, payload + length);
                 payload_buffer.resize(length);
@@ -295,14 +209,16 @@ int main(int argc, char *argv[])
                 ++it;
             }
         }
+
 #endif
 
 #if defined(OPTIMISTIC_REPLICATION) || defined(ECROS)
         sent_acks = false;
 #ifndef CRDT
-        // Send any pending acknowledgments
         if (ack_index < std::atomic_load(&hdl->obj.send_ack_call_list)->size())
+
         {
+
             auto ack_list_snapshot = std::atomic_load(&hdl->obj.send_ack_call_list);
             auto length = hdl->serializeCalls((*ack_list_snapshot)[ack_index], payload);
             std::string message(payload, payload + length);
@@ -316,13 +232,28 @@ int main(int argc, char *argv[])
             ack_index++;
             sent_acks = true;
             ackdelay = 1000;
+            // cout<<"sent ack index=  "<< ack_index<<endl;
+            // cout<<"ceckkkackack222222222222222222"<<endl;
         }
+        // else {
+        // std::this_thread::sleep_for(std::chrono::microseconds(100));
+        //}
 #endif
         uint64_t now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               std::chrono::high_resolution_clock::now().time_since_epoch())
                               .count();
         if (it != calls.end())
         {
+#ifdef FAILURE_MODE
+            if (id == failed_node && std::distance(calls.begin(), it) >= calls.size() / 2)
+            {
+                std::cout << "Node " << id << " simulating failure mid-execution at call index "
+                          << std::distance(calls.begin(), it) << "\n";
+                // sc->closeAllSockets();
+                break;
+            }
+#endif
+
             if (preit != it)
             {
                 early_start_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -345,12 +276,15 @@ int main(int argc, char *argv[])
             {
                 if (onetimeprint)
                 {
+                    // std::cout << "wait for stable index: " << hdl->obj.waittobestable.load() << std::endl;
                     onetimeprint = false;
                 }
                 if (stableindex < hdl->obj.waittobestable.load())
                 {
                     wait = false;
                     onetimeprint = true;
+                    // test_counter++;
+                    // std::cout << "end sync phase" << test_counter<< std::endl;
                 }
             }
 #endif
@@ -372,7 +306,7 @@ int main(int argc, char *argv[])
 
                         sc->broadcast(buff.get());
                         sent++;
-                        
+                        // preit = it;
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
@@ -380,6 +314,13 @@ int main(int argc, char *argv[])
                                                       early_start_time;
                         delay = 10;
                         wait = false;
+
+                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::steady_clock::now()).count() - main_loop_start;
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+
+
+
                     }
                     else if (permiss)
                     {
@@ -388,11 +329,18 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
+                        // preit = it;
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
+
+                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::steady_clock::now() - main_loop_start).count();
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+
+
                     }
                 }
 #endif
@@ -408,21 +356,34 @@ int main(int argc, char *argv[])
 
                 sc->broadcast(buff.get());
                 sent++;
+                // preit = it;
                 ++it;
                 early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                   std::chrono::high_resolution_clock::now().time_since_epoch())
                                                   .count() -
                                               early_start_time;
+                // delay = 10;
+                // wait = false;
 #endif
             }
             else
             {
+                // preit = it;
                 ++it;
                 early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                   std::chrono::high_resolution_clock::now().time_since_epoch())
                                                   .count() -
                                               early_start_time;
+
+                auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::steady_clock::now() - main_loop_start).count();
+                std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+
             }
+            /*if(it==calls.end())
+                early_response_time_totall += std::chrono::duration_cast<std::chrono::microseconds>(
+                                                  std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                  .count() - local_start;*/
         }
 
 #endif
@@ -439,47 +400,25 @@ int main(int argc, char *argv[])
                              std::chrono::high_resolution_clock::now().time_since_epoch())
                              .count();
 
-    // Stop background threads
-    running.store(false);
-    if (heartbeat_sender.joinable()) {
-        heartbeat_sender.join();
-    }
-    if (failure_detector.joinable()) {
-        failure_detector.join();
-    }
-
-    std::cout << "\n========================================" << std::endl;
-    std::cout << "SIMULATION COMPLETE" << std::endl;
-    std::cout << "Issued operations: " << sent << std::endl;
-    std::cout << "Stabilized operations: " << hdl->obj.waittobestable.load() << std::endl;
-    std::cout << "Crashed nodes: " << hdl->failed_count.load() << std::endl;
+    std::cout << "issued " << sent << " operations" << std::endl;
 
     uint64_t global_end = std::chrono::duration_cast<std::chrono::microseconds>(
                               std::chrono::high_resolution_clock::now().time_since_epoch())
                               .count();
-
+    if (ops_rate == 1e9)
+        std::cout << "total average response time in milliseconds: "
+                  << (static_cast<double>(real_end_time - local_start) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000 << std::endl;
+    std::cout << "early average response time in milliseconds: " << (static_cast<double>(early_response_time_totall) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000000 << std::endl;
 #ifdef FAILURE_MODE
-    int actual_ops = hdl->getActualExpectedOps();
-    std::cout << "Actual expected (with crashes): " << actual_ops << std::endl;
-#else
-    int actual_ops = numop;
+    numop -= (numop / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
 #endif
-
     if (ops_rate == 1e9)
-        std::cout << "Total average response time (ms): "
-                  << (static_cast<double>(real_end_time - local_start) / (static_cast<double>(actual_ops) / static_cast<double>(numnodes))) / 1000 << std::endl;
-    
-    std::cout << "Early average response time (ms): " 
-              << (static_cast<double>(early_response_time_totall) / (static_cast<double>(actual_ops) / static_cast<double>(numnodes))) / 1000000 << std::endl;
+        std::cout << "throughput: "
+                  << (static_cast<double>(numop) / static_cast<double>(local_end - local_start)) * 1000 << std::endl;
 
-    if (ops_rate == 1e9)
-        std::cout << "Throughput (ops/ms): "
-                  << (static_cast<double>(actual_ops) / static_cast<double>(local_end - local_start)) * 1000 << std::endl;
-
-    std::cout << "Total simulation time (ms): " 
-              << static_cast<double>(local_end - local_start) / 1000 << std::endl;
-    std::cout << "========================================\n" << std::endl;
+    std::cout << "total time for simulation = " <<  static_cast<double>(local_end - local_start) / 1000  << " milliseconds "<<std::endl;
     
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    // object->toString();
+    std::this_thread::sleep_for(std::chrono::seconds(120));
     return 0;
 }

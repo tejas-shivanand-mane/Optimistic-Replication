@@ -5,6 +5,10 @@
 #include "Thread.cpp"
 #include "ServerConnection.cpp"
 #include "Socket.cpp"
+// #include "../wellcoordination/src/replicated_object.hpp"
+// #include "../protocol2-partialsyn.cpp"
+
+
 
 using namespace std;
 using namespace amirmohsen;
@@ -14,19 +18,19 @@ class ServersCommunicationLayer : public Thread
 
 private:
     int id;
+    // ReplicatedObject* object;
     Handler *handler;
     std::unordered_map<int, ServerConnection *> connections;
     ServerSocket *acceptingSocket;
     std::vector<string> hosts;
     int *ports;
     std::atomic<int> *initcounter;
-    std::atomic<bool> *crash_detection_enabled;
 
     ServerConnection *getConnection(int remoteId);
     void establishConnection(Socket *socket, int remoteId);
 
 public:
-    ServersCommunicationLayer(int id, std::vector<string> hosts, int *portNumbers, Handler *hdl, std::atomic<int> *initcounter, std::atomic<bool> *crash_enabled);
+    ServersCommunicationLayer(int id, std::vector<string> hosts, int *portNumbers, Handler *hdl, std::atomic<int> *initcounter);
 
     ~ServersCommunicationLayer();
 
@@ -45,14 +49,14 @@ ServersCommunicationLayer::~ServersCommunicationLayer()
     delete acceptingSocket;
 }
 
-ServersCommunicationLayer::ServersCommunicationLayer(int id, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter, std::atomic<bool> *crash_enabled)
+ServersCommunicationLayer::ServersCommunicationLayer(int id, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter)
 {
     this->id = id;
     this->hosts = hosts;
     this->ports = ports;
     this->handler = hdl;
+    // this->syn_counter = syn_counter;
     this->initcounter = initcounter;
-    this->crash_detection_enabled = crash_enabled;
     acceptingSocket = new TCPServerSocket(ports[id - 1]);
     connectAll();
 }
@@ -70,7 +74,7 @@ ServerConnection *ServersCommunicationLayer::getConnection(int remoteId)
     ServerConnection *ret;
     if (connections.find(remoteId) == connections.end())
     {
-        ret = new ServerConnection(id, remoteId, NULL, hosts, ports, handler, initcounter, crash_detection_enabled);
+        ret = new ServerConnection(id, remoteId, NULL, hosts, ports, handler, initcounter);
         connections.insert(std::make_pair(remoteId, ret));
     }
     else
@@ -78,6 +82,7 @@ ServerConnection *ServersCommunicationLayer::getConnection(int remoteId)
     return ret;
 }
 
+// broadcasts the message to others (does not send it to self)
 void ServersCommunicationLayer::broadcast(string &message)
 {
     for (auto it : connections)
@@ -102,25 +107,17 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
     for (auto it : connections)
     {
         if (getConnection(it.first) != NULL)
-        {
             try
             {
                 if (it.first != id)
-                {
-                    // Skip crashed nodes
-                    if (handler != nullptr && handler->failed[it.first - 1]) {
-                        continue;
-                    }
-                    
                     getConnection(it.first)->send(message);
-                }
             }
             catch (Exception *e)
             {
-                cout << "Send failed to node " << it.first << ": " << e->getMessage() << endl;
+                cout << e->getMessage() << endl;
+                cout << "Unable to send messages to remote " << it.first << endl;
                 delete e;
             }
-        }
     }
 }
 
@@ -139,59 +136,48 @@ void ServersCommunicationLayer::run()
             establishConnection(newSocket, remoteId);
         } });
 
-    handleAllReceives();
+    handleAllReceives(); // This is the single receiver loop
 
-    accept_thread.join();
+    accept_thread.join(); // Will never be reached unless you break the loop
 }
 
 void ServersCommunicationLayer::handleAllReceives()
 {
     while (true)
     {
-        for (auto it = connections.begin(); it != connections.end(); ++it)
+        for (auto it = connections.begin(); it != connections.end(); )
         {
-            int remote_id = it->first;
             ServerConnection* conn = it->second;
-            
             try
             {
-                if (conn != nullptr && remote_id != id)
+                if (conn != nullptr)
                 {
-                    // Skip if already marked as failed
-                    if (handler != nullptr && handler->failed[remote_id - 1]) {
-                        continue;
-                    }
-                    
                     conn->receive();
+                    ++it;  // advance iterator only if no exception
                 }
             }
             catch (Exception* e)
             {
-                // Exception already handled in ServerConnection::receive()
-                delete e;
+                cout<< "Exception caught by ServerCommunication Layer" << endl;
+                if (conn != nullptr)
+                {
+                    conn->closeSocket();
+                    delete conn;  // if ownership is here
+                }
+                it = connections.erase(it);  // erase and get next iterator
             }
         }
-        
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+        // std::this_thread::sleep_for(std::chrono::microseconds(1));  // prevent busy wait
     }
 }
-
 void ServersCommunicationLayer::closeAllSockets()
 {
-    cout << "Closing all sockets..." << endl;
-    
     for (auto &pair : connections)
     {
         ServerConnection *conn = pair.second;
         if (conn)
         {
-            try {
-                conn->closeSocket();
-            } catch (...) {
-                cout << "Exception while closing socket for node " << pair.first << endl;
-            }
+            conn->closeSocket();
         }
     }
-    
-    cout << "All sockets closed." << endl;
 }
