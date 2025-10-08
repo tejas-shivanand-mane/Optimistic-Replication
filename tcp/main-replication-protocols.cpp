@@ -193,6 +193,7 @@ int main(int argc, char *argv[])
 
     while (hdl->obj.waittobestable.load() < adjusted_expected)
     {
+        std::cout<< "Hello T" << std::endl;
         // Check for timeout
         auto elapsed_total = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::steady_clock::now() - main_loop_start).count();
