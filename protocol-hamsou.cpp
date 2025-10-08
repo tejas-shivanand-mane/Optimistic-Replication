@@ -87,6 +87,25 @@ public:
                               { return this->obj.compareVectorClocks(a.call_vector_clock, b.call_vector_clock) > 0; }) {}
 
 public:
+    // Get actual expected operations based on what failed nodes completed
+    int getActualExpectedOps()
+    {
+        int total_expected = 0;
+        int ops_per_node = expected_calls / number_of_nodes;
+        
+        for (int i = 0; i < number_of_nodes; ++i) {
+            if (failed[i]) {
+                // Use actual operations from failed node
+                total_expected += highest_call_from_node[i].load();
+            } else {
+                // Expect full operations from healthy nodes
+                total_expected += ops_per_node;
+            }
+        }
+        
+        return total_expected;
+    }
+    
     void setVars(int id, int num_nodes, int expected, int wp)
     {
         write_percentage = wp;
@@ -101,11 +120,12 @@ public:
         test = 0;
         failed_count.store(0);
         
-        // Initialize heartbeat timestamps
+        // Initialize heartbeat timestamps and call tracking
         auto now = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < num_nodes; ++i) {
             failed[i] = false;
             last_heartbeat[i] = now;
+            highest_call_from_node[i].store(0);
         }
     }
     
@@ -171,8 +191,13 @@ public:
         if (!failed[id - 1]) {
             failed[id - 1] = true;
             failed_count.fetch_add(1);
+            
+            int actual_ops_from_failed = highest_call_from_node[id - 1].load();
+            
             std::cout << "Node " << id << " marked as FAILED. Total failed nodes: " 
                       << failed_count.load() << std::endl;
+            std::cout << "Node " << id << " completed " << actual_ops_from_failed 
+                      << " operations before failure" << std::endl;
         }
     }
     
@@ -373,6 +398,12 @@ public:
     {
         // Update heartbeat when receiving remote calls
         updateHeartbeat(call.node_id);
+        
+        // Track highest call_id from this node
+        int current_highest = highest_call_from_node[call.node_id - 1].load();
+        if (call.call_id > current_highest) {
+            highest_call_from_node[call.node_id - 1].store(call.call_id);
+        }
         
 #ifndef CRDT
         bool add_queue_flag = false;
