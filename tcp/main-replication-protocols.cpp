@@ -422,6 +422,6 @@ int main(int argc, char *argv[])
     std::cout << "total time for simulation = " <<  static_cast<double>(local_end - local_start) / 1000  << " milliseconds "<<std::endl;
     
     // object->toString();
-    std::this_thread::sleep_for(std::chrono::seconds(120));
+    std::this_thread::sleep_for(std::chrono::seconds(30));
     return 0;
 }
