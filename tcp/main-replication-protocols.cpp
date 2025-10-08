@@ -24,6 +24,9 @@ int main(int argc, char *argv[])
     initcounter = new std::atomic<int>;
     initcounter->store(0);
     
+    // Mark program start time for crash detection timing
+    auto program_start = std::chrono::steady_clock::now();
+    
     std::cout << "id: " << id << std::endl;
     int numnodes = std::stoi(argv[2]);
     std::cout << "nodnum: " << numnodes << std::endl;
@@ -131,6 +134,9 @@ int main(int argc, char *argv[])
     uint64_t local_start = std::chrono::duration_cast<std::chrono::microseconds>(
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
+    
+    auto experiment_start = std::chrono::steady_clock::now();
+    
     int ops_rate = oppersecond;
     int op_interval_ns = 1e9 / ops_rate;
     uint64_t next_op_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -174,10 +180,16 @@ int main(int argc, char *argv[])
     
     // Failure detector - checks if nodes stopped sending heartbeats
     std::thread failure_detector([&]() {
-        // Wait longer before starting crash detection - let system stabilize
-        std::this_thread::sleep_for(std::chrono::seconds(15));
+        // Enable crash detection at T=35s from program start
+        // This is: 12s (sync) + 30s (your kill time) + ~3s buffer
+        // So it enables AFTER you kill node 3
+        int enable_at_seconds = (numnodes * 3) + 23; // sync time + 23s
         
-        std::cout << "[CRASH DETECTION] Now enabled" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(enable_at_seconds));
+        
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - program_start).count();
+        std::cout << "[CRASH DETECTION] Now enabled at T=" << elapsed << "s from program start" << std::endl;
         crash_detection_enabled.store(true);
         
         while (running.load()) {
