@@ -175,6 +175,7 @@ public:
         cout<< "test failure node: " << failed[id - 1] << endl;
 
         failed_nodes.push_back(id);
+        quorum--;
     }
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
