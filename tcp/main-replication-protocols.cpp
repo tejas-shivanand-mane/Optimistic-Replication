@@ -295,15 +295,15 @@ int main(int argc, char *argv[])
             if (req.type != "Read")
             {
 #if defined(OPTIMISTIC_REPLICATION)
-                if (hdl->failed_nodes.size()> last_failed_count)
-                {
-                    // std::cout << "wait is : " << wait << std::endl;
+                // if (hdl->failed_nodes.size()> last_failed_count)
+                // {
+                //     // std::cout << "wait is : " << wait << std::endl;
 
-                    std::cout << "Handling wait due to failure : " << wait << std::endl;
+                //     std::cout << "Handling wait due to failure : " << wait << std::endl;
 
-                    wait = false;
-                    last_failed_count = hdl->failed_nodes.size();
-                }
+                //     wait = false;
+                //     last_failed_count = hdl->failed_nodes.size();
+                // }
                 if (!wait)
                 {
                     hdl->localHandler(req, send_flag, permiss, stableindex);
