@@ -206,12 +206,12 @@ int main(int argc, char *argv[])
         static int last_failed_count = 0;
         int current_failed_count = hdl->failed_count.load();
         if (current_failed_count > last_failed_count) {
-            int ops_per_node = expected_calls / numnodes;
-            int estimated_lost_ops = ops_per_node / 2;
-            adjusted_expected -= estimated_lost_ops;
+            // Recalculate based on ACTUAL operations from failed node
+            int actual_expected = hdl->getActualExpectedOps();
+            adjusted_expected = actual_expected;
             
             std::cout << "[DYNAMIC ADJUST] Node failure detected. New adjusted_expected: " 
-                      << adjusted_expected << " (reduced by " << estimated_lost_ops << ")" << std::endl;
+                      << adjusted_expected << " (based on actual operations)" << std::endl;
             last_failed_count = current_failed_count;
             last_print_time = now;
             stuck_counter = 0;
