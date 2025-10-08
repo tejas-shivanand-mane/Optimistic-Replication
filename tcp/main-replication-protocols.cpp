@@ -266,21 +266,19 @@ int main(int argc, char *argv[])
             
 #ifdef FAILURE_MODE
             if (hdl->failed_count.load() > 0) {
-                int ops_per_node = expected_calls / numnodes;
-                int max_missing = ops_per_node * hdl->failed_count.load();
-                int realistic_target = expected_calls - max_missing;
+                int actual_expected = hdl->getActualExpectedOps();
                 
-                std::cout << "[ANALYSIS] Realistic target with failures: " << realistic_target 
+                std::cout << "[ANALYSIS] Actual expected with failures: " << actual_expected 
                           << ", current: " << current << std::endl;
                 
-                if (current >= realistic_target * 0.95) {
-                    std::cout << "[AUTO-COMPLETE] Within 95% of realistic target. Completing..." << std::endl;
+                if (current >= actual_expected * 0.95) {
+                    std::cout << "[AUTO-COMPLETE] Within 95% of actual target. Completing..." << std::endl;
                     break;
                 }
                 
-                if (adjusted_expected > realistic_target) {
-                    adjusted_expected = realistic_target;
-                    std::cout << "[FORCED ADJUST] Adjusting to realistic target: " << adjusted_expected << std::endl;
+                if (adjusted_expected > actual_expected) {
+                    adjusted_expected = actual_expected;
+                    std::cout << "[FORCED ADJUST] Adjusting to actual target: " << adjusted_expected << std::endl;
                 }
             }
 #endif
