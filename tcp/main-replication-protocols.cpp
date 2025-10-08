@@ -316,7 +316,8 @@ int main(int argc, char *argv[])
                         wait = false;
 
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                        std::chrono::steady_clock::now()).count() - main_loop_start;
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() - main_loop_start;
                         std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
 
 
