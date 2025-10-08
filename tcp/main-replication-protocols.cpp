@@ -188,13 +188,13 @@ int main(int argc, char *argv[])
         auto elapsed_total = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::steady_clock::now() - main_loop_start).count();
         
-        if (elapsed_total > MAX_LOOP_TIME_SECONDS) {
-            std::cout << "[TIMEOUT] Main loop exceeded " << MAX_LOOP_TIME_SECONDS 
-                      << " seconds. Current: " << hdl->obj.waittobestable.load() 
-                      << "/" << adjusted_expected 
-                      << ", Failed nodes: " << hdl->failed_count.load() << std::endl;
-            break;
-        }
+        // if (elapsed_total > MAX_LOOP_TIME_SECONDS) {
+        //     std::cout << "[TIMEOUT] Main loop exceeded " << MAX_LOOP_TIME_SECONDS 
+        //               << " seconds. Current: " << hdl->obj.waittobestable.load() 
+        //               << "/" << adjusted_expected 
+        //               << ", Failed nodes: " << hdl->failed_count.load() << std::endl;
+        //     break;
+        // }
         
         static int last_printed = 0;
         static auto last_print_time = std::chrono::steady_clock::now();
@@ -411,6 +411,12 @@ int main(int argc, char *argv[])
                                                       early_start_time;
                         delay = 10;
                         wait = false;
+
+
+                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::steady_clock::now() - main_loop_start).count();
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+
                     }
                     else if (permiss)
                     {
@@ -458,6 +464,14 @@ int main(int argc, char *argv[])
                                                   std::chrono::high_resolution_clock::now().time_since_epoch())
                                                   .count() -
                                               early_start_time;
+
+
+
+                auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::steady_clock::now() - main_loop_start).count();
+                std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+                
+                
             }
         }
 
