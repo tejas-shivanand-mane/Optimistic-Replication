@@ -237,6 +237,8 @@ void ServerConnection::receive()
 		{
 			std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
 			handler->setfailurenode(this->remoteId);
+			handler->quorum = handler->quorum - 1;
+
 			activate_timeout = false; // Reset the flag after marking as failed
 		}
 

@@ -57,12 +57,13 @@ public:
 #ifdef OPCRDTREG
     Opcrdtreg obj;
 #endif
-
+public:
     std::mutex mtx;
     std::mutex mtx_ack;
     std::vector<Call> executionList;
     int node_id;
     int number_of_nodes;
+    int quorum;
     int expected_calls;
     int write_percentage;
     std::vector<int> vector_clock;
@@ -81,7 +82,7 @@ public:
                 priorityQueue([this](const Call &a, const Call &b)
                               { return this->obj.compareVectorClocks(a.call_vector_clock, b.call_vector_clock) > 0; }) {}
 
-public:
+
     void setVars(int id, int num_nodes, int expected, int wp)
     {
         write_percentage = wp;
@@ -89,6 +90,8 @@ public:
         expected_calls = expected;
         node_id = id;
         number_of_nodes = num_nodes;
+        quorum = number_of_nodes - 1;
+        
         vector_clock.resize(num_nodes, 0);
         remote_verctor_clocks.resize(num_nodes, std::vector<int>(num_nodes, 0));
         acks.resize(num_nodes, std::vector<int>(350000, 0));
@@ -427,7 +430,7 @@ public:
         }*/
     void updateAcksTable(Call call)
     {
-        int quorum = number_of_nodes - 1;
+        // int quorum = number_of_nodes - 1;
         acks[call.node_id - 1][call.call_id]++;
 // std::cout << "Exe - by update ack - type: " << call.type << " and value1: " << " -call id -" << call.call_id << "acks -- " << acks[call.node_id - 1][call.call_id] << "qu size  "<< priorityQueue.size()<<std::endl;
 // #ifdef FAILURE_MODE
@@ -461,7 +464,7 @@ public:
     void stabilizerWithAck()
     {
         bool can_unqued = false;
-        int quorum = number_of_nodes - 1;
+        // int quorum = number_of_nodes - 1;
 // #ifdef FAILURE_MODE
 //         int num_failed = 0;
 //         for (int i = 0; i < number_of_nodes; ++i)
