@@ -239,7 +239,7 @@ void ServerConnection::receive()
 			handler->setfailurenode(this->remoteId);
 			// handler->quorum = handler->quorum - 1;
 
-			activate_timeout = false; // Reset the flag after marking as failed
+			// activate_timeout = false; // Reset the flag after marking as failed
 		}
 
 		// throw;
