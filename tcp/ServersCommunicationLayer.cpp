@@ -87,25 +87,33 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
 {
     for (auto it = connections.begin(); it != connections.end(); )
     {
-        ServerConnection* conn = it->second;
+        ServerConnection *conn = it->second;
 
-        // prune obviously-dead entries first
-        if (!conn || it->first == id || conn->socket == nullptr) {
+        // Skip self and not-yet-connected peers
+        if (!conn || it->first == id || conn->socket == nullptr)
+        {
             ++it;
             continue;
         }
 
-        try {
-            conn->send(message);
+        try
+        {
+            conn->send(message);  // normal send
             ++it;
         }
         catch (Exception *e)
         {
-            std::cout << "Broadcast(Buffer*) failed to " << conn->remoteId << " → removing\n";
+            std::cout << "[Broadcast(Buffer*)] Failed to remote "
+                      << conn->remoteId << " → removing\n";
             std::cout << e->getMessage() << std::endl;
             delete e;
-            conn->closeSocket();
-            delete conn;
+
+            // Gracefully prune failed connection
+            if (conn)
+            {
+                conn->closeSocket();
+                delete conn;
+            }
             it = connections.erase(it);
         }
     }
@@ -115,27 +123,37 @@ void ServersCommunicationLayer::broadcast(std::string &message)
 {
     for (auto it = connections.begin(); it != connections.end(); )
     {
-        ServerConnection* conn = it->second;
+        ServerConnection *conn = it->second;
 
-        if (!conn || it->first == id || conn->socket == nullptr) {
+        // Skip self and not-yet-connected peers
+        if (!conn || it->first == id || conn->socket == nullptr)
+        {
             ++it;
             continue;
         }
 
-        try {
+        try
+        {
             conn->send(message);
             ++it;
         }
         catch (Exception *e)
         {
-            std::cout << "Broadcast(string) failed to " << conn->remoteId << " → removing\n";
+            std::cout << "[Broadcast(string)] Failed to remote "
+                      << conn->remoteId << " → removing\n";
+            std::cout << e->getMessage() << std::endl;
             delete e;
-            conn->closeSocket();
-            delete conn;
+
+            if (conn)
+            {
+                conn->closeSocket();
+                delete conn;
+            }
             it = connections.erase(it);
         }
     }
 }
+
 
 
 
@@ -159,7 +177,6 @@ void ServersCommunicationLayer::run()
 
     accept_thread.join(); // Will never be reached unless you break the loop
 }
-
 
 void ServersCommunicationLayer::handleAllReceives()
 {
@@ -201,12 +218,49 @@ void ServersCommunicationLayer::handleAllReceives()
         auto now = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print).count() >= 1)
         {
-            std::cout << "[Pump] active connections: " << connections.size() << std::endl;
+            std::cout << "[Pump] active connections: " << connections.size()
+                      << " failed_nodes: " << handler->failed_nodes.size()
+                      << " quorum: " << handler->quorum.load()
+                      << std::endl;
             last_print = now;
         }
 
         // Slight sleep to prevent busy spin
         std::this_thread::sleep_for(std::chrono::microseconds(20));
+
+        // 🔹 Timeout detection for silent peers
+        const auto FAIL_AFTER = std::chrono::seconds(3);  // tune as needed
+        now = std::chrono::steady_clock::now();
+
+        for (auto it = connections.begin(); it != connections.end(); )
+        {
+            ServerConnection* conn = it->second;
+
+            if (!conn || it->first == id)
+            {
+                ++it;
+                continue;
+            }
+
+            // If we've heard nothing for FAIL_AFTER, mark as failed
+            if (now - conn->last_recv_time > FAIL_AFTER)
+            {
+                std::cout << "[Timeout] remote " << it->first << " inactive for "
+                          << std::chrono::duration_cast<std::chrono::milliseconds>(now - conn->last_recv_time).count()
+                          << " ms → pruning\n";
+
+                // notify handler and prune
+                handler->setfailurenode(it->first);
+                if (conn)
+                {
+                    conn->closeSocket();
+                    delete conn;
+                }
+                it = connections.erase(it);
+                continue;
+            }
+            ++it;
+        }
     }
 }
 

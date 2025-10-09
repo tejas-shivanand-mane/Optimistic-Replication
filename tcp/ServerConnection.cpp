@@ -48,7 +48,7 @@ public:
 	// Receiver *receiver;
 	Handler *handler;
 // #ifdef FAILURE_MODE
-// 	std::chrono::steady_clock::time_point last_recv_time;
+	std::chrono::steady_clock::time_point last_recv_time;
 // #endif
 
 	// int* syn_counter; // new added
@@ -86,7 +86,7 @@ ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::ve
 	//  this->syn_counter = syn_counter;
 	this->initcounter = initcounter;
 // #ifdef FAILURE_MODE
-// 	this->last_recv_time = std::chrono::steady_clock::now();
+	this->last_recv_time = std::chrono::steady_clock::now();
 // #endif
 	if (isToConnect())
 		createConnection();
@@ -178,11 +178,19 @@ void ServerConnection::receive()
 				return;
 
 			string lengthStr = socket->getString();
-			if (lengthStr.empty())
-				return;
+			if (lengthStr.empty()) {
+				std::cout << "Remote " << remoteId << " EOF/closed\n";
+				handler->setfailurenode(this->remoteId);
+				if (socket) { try { socket->close(); } catch (...) {} }
+				socket = nullptr;
+				throw new Exception("EOF from remote");
+			}
 
 			int length = std::stoi(lengthStr);
 			Buffer *buff = socket->receive(length);
+
+			last_recv_time = std::chrono::steady_clock::now();
+
 			if (buff == nullptr)
 				break;
 			// cout << "checkkk222" << "this remote " << this->remoteId << endl;
