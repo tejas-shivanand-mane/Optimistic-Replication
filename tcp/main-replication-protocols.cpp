@@ -18,8 +18,56 @@ using namespace amirmohsen;
 
 std::atomic<int> *initcounter;
 
+
+#include <csignal>
+
+// Global pointers for signal handler
+ServersCommunicationLayer* global_sc = nullptr;
+Handler* global_hdl = nullptr;
+std::atomic<bool> shutdown_requested{false};
+
+void shutdownHandler(int signum) {
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "[SHUTDOWN HOOK] Caught signal " << signum << std::endl;
+    
+    if (signum == SIGTERM) {
+        std::cout << "[SHUTDOWN HOOK] This is from 'sudo killall'" << std::endl;
+    } else if (signum == SIGINT) {
+        std::cout << "[SHUTDOWN HOOK] This is from Ctrl+C" << std::endl;
+    }
+    
+    std::cout << "[SHUTDOWN HOOK] Closing all socket connections..." << std::endl;
+    
+    shutdown_requested.store(true);
+    
+    // Close all sockets immediately - this triggers exceptions on other nodes
+    if (global_sc != nullptr) {
+        global_sc->closeAllSockets();
+    }
+    
+    // Show final stats
+    if (global_hdl != nullptr) {
+        std::cout << "[SHUTDOWN HOOK] Final stats:" << std::endl;
+        std::cout << "  Stabilized ops: " << global_hdl->obj.waittobestable.load() << std::endl;
+        std::cout << "  Failed nodes: " << global_hdl->failed_nodes.size() << std::endl;
+    }
+    
+    std::cout << "[SHUTDOWN HOOK] Exiting..." << std::endl;
+    std::cout << "========================================\n" << std::endl;
+    
+    // Give a brief moment for messages to flush
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    exit(signum);
+}
+
 int main(int argc, char *argv[])
 {
+
+
+    signal(SIGTERM, shutdownHandler);  // sudo killall
+    signal(SIGINT, shutdownHandler);   // Ctrl+C
+    signal(SIGHUP, shutdownHandler);   // Terminal closed
 
     // std::cout << "checkkk111" << std::endl;
     std::vector<string> hosts;
@@ -65,6 +113,7 @@ int main(int argc, char *argv[])
     loc += "/" + usecase + "/";
     //////////////////////////////////////
     Handler *hdl = new Handler(); // Ensure this is properly initialized
+    global_hdl = hdl;
 
     std::cout << "Starting Handler"<< std::endl;
 
@@ -77,6 +126,8 @@ int main(int argc, char *argv[])
     //  start connections
     int syn_counter = 0;
     ServersCommunicationLayer *sc = new ServersCommunicationLayer(id, hosts, ports, hdl, initcounter);
+    global_sc = sc;
+
     std::cout << "Starting ServersCommunicationLayer"<< std::endl;
     sc->start();
     // wait for all to connect
@@ -184,7 +235,7 @@ int main(int argc, char *argv[])
 
     int last_failed_count = hdl->failed_nodes.size();
 
-    while (hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
+    while (!shutdown_requested.load() && hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
@@ -436,5 +487,11 @@ int main(int argc, char *argv[])
     
     // object->toString();
     std::this_thread::sleep_for(std::chrono::seconds(30));
+
+
+
+    global_sc = nullptr;
+    global_hdl = nullptr;
+
     return 0;
 }
