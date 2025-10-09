@@ -440,6 +440,9 @@ public:
     void updateAcksTable(Call call)
     {
         // int quorum = number_of_nodes - 1;
+        cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
+
+
         acks[call.node_id - 1][call.call_id]++;
 // std::cout << "Exe - by update ack - type: " << call.type << " and value1: " << " -call id -" << call.call_id << "acks -- " << acks[call.node_id - 1][call.call_id] << "qu size  "<< priorityQueue.size()<<std::endl;
 // #ifdef FAILURE_MODE
