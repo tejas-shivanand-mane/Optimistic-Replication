@@ -242,7 +242,7 @@ void ServerConnection::receive()
 			activate_timeout = false; // Reset the flag after marking as failed
 		}
 
-		throw;
+		// throw;
 
 
 // #ifdef FAILURE_MODE
