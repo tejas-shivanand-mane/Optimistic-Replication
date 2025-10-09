@@ -63,9 +63,11 @@ public:
 public:
 	ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter);
 
-	~ServerConnection();
+    bool isAlive() const;
 
-	void createConnection();
+    ~ServerConnection();
+
+    void createConnection();
 	void send(string &message);
 	void send(Buffer *buff);
 	void reconnect(Socket *socket);
@@ -92,6 +94,11 @@ ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::ve
 	// sender = new Sender();
 }
 
+
+bool ServerConnection::isAlive() const {
+    return socket != nullptr; // optionally also: socket->isOpen()
+}
+
 ServerConnection::~ServerConnection()
 {
 	closeSocket();
@@ -104,17 +111,14 @@ void ServerConnection::send(string &message)
 
 void ServerConnection::send(Buffer *buff)
 {
-	if (socket == nullptr)
-	{
-		std::cout << "socket is null" << std::endl;
-		// Handle the error here, for example by returning from the function
-		return;
-	}
-	else
-	{
-		socket->send(to_string(buff->getSize()));
-		socket->send(buff);
-	}
+    if (socket == nullptr)
+    {
+        // Make this visible to the caller so they can prune the connection
+        throw new Exception("send(Buffer*): socket is null");
+    }
+
+    socket->send(to_string(buff->getSize()));
+    socket->send(buff);
 }
 
 void ServerConnection::createConnection()

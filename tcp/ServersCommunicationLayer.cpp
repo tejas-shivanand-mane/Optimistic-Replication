@@ -83,42 +83,62 @@ ServerConnection *ServersCommunicationLayer::getConnection(int remoteId)
 }
 
 // broadcasts the message to others (does not send it to self)
-void ServersCommunicationLayer::broadcast(std::string &message) {
-    for (auto it = connections.begin(); it != connections.end(); ) {
+void ServersCommunicationLayer::broadcast(Buffer *message)
+{
+    for (auto it = connections.begin(); it != connections.end(); )
+    {
         ServerConnection* conn = it->second;
-        if (conn && it->first != id) {
-            try { conn->send(message); ++it; }
-            catch (Exception* e) {
-                std::cout << "Broadcast(string) failed to " << conn->remoteId << " → removing\n";
-                delete e;
-                conn->closeSocket(); delete conn;
-                it = connections.erase(it);
-                continue;
-            }
-        } else {
+
+        // prune obviously-dead entries first
+        if (!conn || !conn->isAlive() || it->first == id) {
+            if (conn && !conn->isAlive()) { delete conn; }
+            it = connections.erase(it);
+            continue;
+        }
+
+        try {
+            conn->send(message);
             ++it;
+        }
+        catch (Exception *e)
+        {
+            std::cout << "Broadcast(Buffer*) failed to " << conn->remoteId << " → removing\n";
+            std::cout << e->getMessage() << std::endl;
+            delete e;
+            conn->closeSocket();
+            delete conn;
+            it = connections.erase(it);
         }
     }
 }
 
-void ServersCommunicationLayer::broadcast(Buffer *message) {
-    for (auto it = connections.begin(); it != connections.end(); ) {
+void ServersCommunicationLayer::broadcast(std::string &message)
+{
+    for (auto it = connections.begin(); it != connections.end(); )
+    {
         ServerConnection* conn = it->second;
-        if (conn && it->first != id) {
-            try { conn->send(message); ++it; }
-            catch (Exception* e) {
-                std::cout << "Broadcast(Buffer*) failed to " << conn->remoteId << " → removing\n";
-                std::cout << e->getMessage() << std::endl;
-                delete e;
-                conn->closeSocket(); delete conn;
-                it = connections.erase(it);
-                continue;
-            }
-        } else {
+
+        if (!conn || !conn->isAlive() || it->first == id) {
+            if (conn && !conn->isAlive()) { delete conn; }
+            it = connections.erase(it);
+            continue;
+        }
+
+        try {
+            conn->send(message);
             ++it;
+        }
+        catch (Exception *e)
+        {
+            std::cout << "Broadcast(string) failed to " << conn->remoteId << " → removing\n";
+            delete e;
+            conn->closeSocket();
+            delete conn;
+            it = connections.erase(it);
         }
     }
 }
+
 
 
 
