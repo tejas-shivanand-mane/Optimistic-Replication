@@ -246,6 +246,7 @@ int main(int argc, char *argv[])
 
     while (!shutdown_requested.load() &&hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
+        std::cout << "In main loop" << std::endl;
 
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
