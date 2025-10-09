@@ -16,7 +16,7 @@ using namespace amirmohsen;
 class ServersCommunicationLayer : public Thread
 {
 
-private:
+public:
     int id;
     // ReplicatedObject* object;
     Handler *handler;
@@ -83,74 +83,43 @@ ServerConnection *ServersCommunicationLayer::getConnection(int remoteId)
 }
 
 // broadcasts the message to others (does not send it to self)
-// broadcasts the message to others (does not send it to self)
-void ServersCommunicationLayer::broadcast(std::string &message)
-{
-    for (auto it = connections.begin(); it != connections.end(); )  // iterator, not range-for
-    {
+void ServersCommunicationLayer::broadcast(std::string &message) {
+    for (auto it = connections.begin(); it != connections.end(); ) {
         ServerConnection* conn = it->second;
-
-        if (conn && it->first != id)
-        {
-            try {
-                conn->send(message);
-                ++it;   // only advance if send succeeds
-            }
-            catch (Exception *e)
-            {
-                std::cout << "Exception caught during broadcast to remoteID: "
-                          << conn->remoteId << " → removing connection\n";
-
-                delete e;  // free the thrown exception
-                conn->closeSocket();
-                delete conn;
-
-                // erase returns the next valid iterator
+        if (conn && it->first != id) {
+            try { conn->send(message); ++it; }
+            catch (Exception* e) {
+                std::cout << "Broadcast(string) failed to " << conn->remoteId << " → removing\n";
+                delete e;
+                conn->closeSocket(); delete conn;
                 it = connections.erase(it);
                 continue;
             }
-        }
-        else
-        {
-            ++it;  // skip self or null connection
+        } else {
+            ++it;
         }
     }
 }
 
-
-// broadcasts the message to others (does not send it to self)
-void ServersCommunicationLayer::broadcast(Buffer *message)
-{
-    for (auto it = connections.begin(); it != connections.end(); )
-    {
+void ServersCommunicationLayer::broadcast(Buffer *message) {
+    for (auto it = connections.begin(); it != connections.end(); ) {
         ServerConnection* conn = it->second;
-
-        if (conn && it->first != id)
-        {
-            try {
-                conn->send(message);
-                ++it;   // advance if send succeeds
-            }
-            catch (Exception *e)
-            {
-                std::cout << "Exception caught during broadcast(Buffer*) to remoteID: "
-                          << conn->remoteId << " → removing connection\n";
+        if (conn && it->first != id) {
+            try { conn->send(message); ++it; }
+            catch (Exception* e) {
+                std::cout << "Broadcast(Buffer*) failed to " << conn->remoteId << " → removing\n";
                 std::cout << e->getMessage() << std::endl;
                 delete e;
-
-                conn->closeSocket();
-                delete conn;
-
-                it = connections.erase(it);  // erase returns next valid iterator
+                conn->closeSocket(); delete conn;
+                it = connections.erase(it);
                 continue;
             }
-        }
-        else
-        {
-            ++it;  // skip self or null connection
+        } else {
+            ++it;
         }
     }
 }
+
 
 
 void ServersCommunicationLayer::establishConnection(Socket *socket, int remoteId)
@@ -173,8 +142,11 @@ void ServersCommunicationLayer::run()
     accept_thread.join(); // Will never be reached unless you break the loop
 }
 
+
 void ServersCommunicationLayer::handleAllReceives()
 {
+    auto last_print = std::chrono::steady_clock::now();
+
     while (true)
     {
         for (auto it = connections.begin(); it != connections.end(); )
@@ -187,21 +159,42 @@ void ServersCommunicationLayer::handleAllReceives()
                     conn->receive();
                     ++it;  // advance iterator only if no exception
                 }
+                else
+                {
+                    it = connections.erase(it);
+                    continue;
+                }
             }
             catch (Exception* e)
             {
-                cout<< "Exception caught by ServerCommunication Layer for remoteID: " << conn->remoteId << endl;
-                if (conn != nullptr)
+                std::cout << "Receive error on remote " << it->first << " → pruning\n";
+                delete e;
+                if (conn)
                 {
                     conn->closeSocket();
-                    delete conn;  // if ownership is here
+                    delete conn;
                 }
-                it = connections.erase(it);  // erase and get next iterator
+                it = connections.erase(it);   // erase returns next iterator
+                continue;     
             }
         }
-        // std::this_thread::sleep_for(std::chrono::microseconds(1));  // prevent busy wait
+
+        // 🕒 print once every second to confirm the receive thread is alive
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print).count() >= 1)
+        {
+            std::cout << "[Pump] active connections: " << connections.size() << std::endl;
+            last_print = now;
+        }
+
+        // Slight sleep to prevent busy spin
+        std::this_thread::sleep_for(std::chrono::microseconds(20));
     }
 }
+
+
+
+
 void ServersCommunicationLayer::closeAllSockets()
 {
     for (auto &pair : connections)

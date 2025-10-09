@@ -234,24 +234,12 @@ void ServerConnection::receive()
 		std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
 		handler->setfailurenode(this->remoteId);
 
-	
+		// make this connection unusable
+		if (socket) { try { socket->close(); } catch (Exception *e2) {} }
+		socket = nullptr;
 
-		// Mark this connection unusable and let the upper layer erase it.
-		if (socket) {
-			try { socket->close(); } catch (Exception *e) {}
-		}
-		socket = nullptr;          // prevent future sends/reads on a dead socket
-
-		Exception* tmp = e;
-		e = nullptr;
-		delete tmp;
-
-		// *** IMPORTANT ***
-		// Rethrow so ServersCommunicationLayer::handleAllReceives() can erase() this entry.
+		// free and rethrow to let upper layer erase() this connection
+		Exception* tmp = e; e = nullptr; delete tmp;
 		throw;
-
-
-
-		delete e;
 	}
 }

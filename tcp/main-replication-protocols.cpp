@@ -238,6 +238,20 @@ int main(int argc, char *argv[])
     while (!shutdown_requested.load() && hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
+
+
+        static auto last_main_print = std::chrono::steady_clock::now();
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_main_print).count() >= 1) {
+            std::cout << "[Main] ops_sent=" << std::distance(calls.begin(), it)
+                    << " stable=" << hdl->obj.waittobestable.load()
+                    << " quorum=" << hdl->quorum
+                    << " failed_nodes=" << hdl->failed_nodes.size()
+                    << " connections=" << sc->connections.size() << std::endl;
+            last_main_print = now;
+        }
+
+
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
         if (it != calls.end())
