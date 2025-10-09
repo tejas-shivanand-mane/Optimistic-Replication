@@ -111,12 +111,11 @@ void ServerConnection::send(string &message)
 
 void ServerConnection::send(Buffer *buff)
 {
-    if (socket == nullptr)
-    {
-        // Make this visible to the caller so they can prune the connection
-        throw new Exception("send(Buffer*): socket is null");
+    if (socket == nullptr) {
+        // Not connected yet; skip quietly (or log once per remote)
+        // std::cout << "[SendSkip] remote " << remoteId << " not connected yet\n";
+        return;
     }
-
     socket->send(to_string(buff->getSize()));
     socket->send(buff);
 }
@@ -145,22 +144,16 @@ void ServerConnection::closeSocket()
 // connections to the nodes with lower ids have already been created
 void ServerConnection::reconnect(Socket *newSocket)
 {
-	std::cout << "reconnecting " << "id: " << id << " remoteId: " << remoteId << std::endl;
-	if (socket == NULL)
-	{
-		if (isToConnect())
-		{
-			createConnection();
-		}
-		else
-		{
-			socket = newSocket;
-			// receiver = new Receiver(socket, remoteId, handler, initcounter);
-			// receiver->start();
-		}
-	}
+    std::cout << "reconnecting id: " << id << " remoteId: " << remoteId << std::endl;
+    if (socket == NULL) {
+        if (isToConnect())
+            createConnection();
+        else {
+            socket = newSocket;
+            std::cout << "[ConnUp] remote " << remoteId << " socket assigned\n";
+        }
+    }
 }
-
 void ServerConnection::receive()
 {
 // #ifdef FAILURE_MODE

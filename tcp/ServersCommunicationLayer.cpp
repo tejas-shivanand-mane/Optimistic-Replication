@@ -90,9 +90,8 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
         ServerConnection* conn = it->second;
 
         // prune obviously-dead entries first
-        if (!conn || !conn->isAlive() || it->first == id) {
-            if (conn && !conn->isAlive()) { delete conn; }
-            it = connections.erase(it);
+        if (!conn || it->first == id || conn->socket == nullptr) {
+            ++it;
             continue;
         }
 
@@ -118,9 +117,8 @@ void ServersCommunicationLayer::broadcast(std::string &message)
     {
         ServerConnection* conn = it->second;
 
-        if (!conn || !conn->isAlive() || it->first == id) {
-            if (conn && !conn->isAlive()) { delete conn; }
-            it = connections.erase(it);
+        if (!conn || it->first == id || conn->socket == nullptr) {
+            ++it;
             continue;
         }
 
