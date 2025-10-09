@@ -26,6 +26,9 @@ ServersCommunicationLayer* global_sc = nullptr;
 Handler* global_hdl = nullptr;
 std::atomic<bool> shutdown_requested{false};
 
+
+
+
 void shutdownHandler(int signum) {
     std::cout << "\n========================================" << std::endl;
     std::cout << "[SHUTDOWN HOOK] Caught signal " << signum << std::endl;
@@ -61,13 +64,18 @@ void shutdownHandler(int signum) {
     exit(signum);
 }
 
+
+
 int main(int argc, char *argv[])
 {
+
+
 
 
     signal(SIGTERM, shutdownHandler);  // sudo killall
     signal(SIGINT, shutdownHandler);   // Ctrl+C
     signal(SIGHUP, shutdownHandler);   // Terminal closed
+
 
     // std::cout << "checkkk111" << std::endl;
     std::vector<string> hosts;
@@ -127,6 +135,7 @@ int main(int argc, char *argv[])
     int syn_counter = 0;
     ServersCommunicationLayer *sc = new ServersCommunicationLayer(id, hosts, ports, hdl, initcounter);
     global_sc = sc;
+
 
     std::cout << "Starting ServersCommunicationLayer"<< std::endl;
     sc->start();
@@ -235,22 +244,8 @@ int main(int argc, char *argv[])
 
     int last_failed_count = hdl->failed_nodes.size();
 
-    while (!shutdown_requested.load() && hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
+    while (!shutdown_requested.load() &&hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
-
-
-
-        static auto last_main_print = std::chrono::steady_clock::now();
-        auto now = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_main_print).count() >= 1) {
-            std::cout << "[Main] ops_sent=" << std::distance(calls.begin(), it)
-                    << " stable=" << hdl->obj.waittobestable.load()
-                    << " quorum=" << hdl->quorum
-                    << " failed_nodes=" << hdl->failed_nodes.size()
-                    << " connections=" << sc->connections.size() << std::endl;
-            last_main_print = now;
-        }
-
 
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
@@ -341,17 +336,6 @@ int main(int argc, char *argv[])
 
             Call &req = *it;
 #ifndef CRDT
-
-
-            static int last_failed_count = 0;
-            if ((int)hdl->failed_nodes.size() > last_failed_count) {
-                std::cout << "[Recovery] Detected new failure (total failed nodes: "
-                        << hdl->failed_nodes.size() << "). Breaking out of wait state.\n";
-                wait = false;
-                last_failed_count = (int)hdl->failed_nodes.size();
-            }
-
-
             if (wait)
             {
                 if (onetimeprint)
@@ -486,21 +470,6 @@ int main(int argc, char *argv[])
                                 .count();
             hdl->last_call_stable.store(false);
         }
-
-
-        static auto last_debug_print = std::chrono::steady_clock::now();
-        auto now2 = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(now2 - last_debug_print).count() >= 1)
-        {
-            std::cout << "[MainDebug] quorum=" << hdl->quorum.load()
-                    << " stable_index=" << hdl->obj.stable_state.index
-                    << " waittobestable=" << hdl->obj.waittobestable.load()
-                    << " failed_nodes=" << hdl->failed_nodes.size()
-                    << std::endl;
-            last_debug_print = now2;
-        }
-
-
     }
 
     uint64_t local_end = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -527,8 +496,6 @@ int main(int argc, char *argv[])
     
     // object->toString();
     std::this_thread::sleep_for(std::chrono::seconds(30));
-
-
 
     global_sc = nullptr;
     global_hdl = nullptr;

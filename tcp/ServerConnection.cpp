@@ -10,7 +10,7 @@
 // #include "../protocol2-partialsyn.cpp"
 // #define FAILURE_MODE
 // #define CRDT_MESSAGE_PASSING
-
+bool activate_timeout = true; // this is used to activate the timeout in the main-replication-protocols.cpp
 #define OPTIMISTIC_REPLICATION
 // #define ECROS
 
@@ -30,25 +30,26 @@ using namespace amirmohsen;
 
 class ServerConnection
 {
-public:
+private:
 	class Sender : public Thread
 	{
 		string *message;
 		Socket *socket;
 
-	
+	public:
 		Sender(string *message, Socket *socket);
 		void run();
 	};
 
 	int id;
 	int remoteId;
+	// bool activate_timeout;
 
 	Socket *socket;
 	// Receiver *receiver;
 	Handler *handler;
 // #ifdef FAILURE_MODE
-	std::chrono::steady_clock::time_point last_recv_time;
+// 	std::chrono::steady_clock::time_point last_recv_time;
 // #endif
 
 	// int* syn_counter; // new added
@@ -63,11 +64,9 @@ public:
 public:
 	ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter);
 
-    bool isAlive() const;
+	~ServerConnection();
 
-    ~ServerConnection();
-
-    void createConnection();
+	void createConnection();
 	void send(string &message);
 	void send(Buffer *buff);
 	void reconnect(Socket *socket);
@@ -83,20 +82,16 @@ ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::ve
 	this->ports = ports;
 	this->socket = socket;
 	this->handler = hdl;
+	// this->activate_timeout = false;
 	//  this->syn_counter = syn_counter;
 	this->initcounter = initcounter;
 // #ifdef FAILURE_MODE
-	this->last_recv_time = std::chrono::steady_clock::now();
+// 	this->last_recv_time = std::chrono::steady_clock::now();
 // #endif
 	if (isToConnect())
 		createConnection();
 
 	// sender = new Sender();
-}
-
-
-bool ServerConnection::isAlive() const {
-    return socket != nullptr; // optionally also: socket->isOpen()
 }
 
 ServerConnection::~ServerConnection()
@@ -111,13 +106,17 @@ void ServerConnection::send(string &message)
 
 void ServerConnection::send(Buffer *buff)
 {
-    if (socket == nullptr) {
-        // Not connected yet; skip quietly (or log once per remote)
-        // std::cout << "[SendSkip] remote " << remoteId << " not connected yet\n";
-        return;
-    }
-    socket->send(to_string(buff->getSize()));
-    socket->send(buff);
+	if (socket == nullptr)
+	{
+		std::cout << "socket is null" << std::endl;
+		// Handle the error here, for example by returning from the function
+		return;
+	}
+	else
+	{
+		socket->send(to_string(buff->getSize()));
+		socket->send(buff);
+	}
 }
 
 void ServerConnection::createConnection()
@@ -144,16 +143,22 @@ void ServerConnection::closeSocket()
 // connections to the nodes with lower ids have already been created
 void ServerConnection::reconnect(Socket *newSocket)
 {
-    std::cout << "reconnecting id: " << id << " remoteId: " << remoteId << std::endl;
-    if (socket == NULL) {
-        if (isToConnect())
-            createConnection();
-        else {
-            socket = newSocket;
-            std::cout << "[ConnUp] remote " << remoteId << " socket assigned\n";
-        }
-    }
+	std::cout << "reconnecting " << "id: " << id << " remoteId: " << remoteId << std::endl;
+	if (socket == NULL)
+	{
+		if (isToConnect())
+		{
+			createConnection();
+		}
+		else
+		{
+			socket = newSocket;
+			// receiver = new Receiver(socket, remoteId, handler, initcounter);
+			// receiver->start();
+		}
+	}
 }
+
 void ServerConnection::receive()
 {
 // #ifdef FAILURE_MODE
@@ -178,22 +183,14 @@ void ServerConnection::receive()
 				return;
 
 			string lengthStr = socket->getString();
-			if (lengthStr.empty()) {
-				std::cout << "Remote " << remoteId << " EOF/closed\n";
-				handler->setfailurenode(this->remoteId);
-				if (socket) { try { socket->close(); } catch (...) {} }
-				socket = nullptr;
-				throw new Exception("EOF from remote");
-			}
+			if (lengthStr.empty())
+				return;
 
 			int length = std::stoi(lengthStr);
 			Buffer *buff = socket->receive(length);
-
-			last_recv_time = std::chrono::steady_clock::now();
-
 			if (buff == nullptr)
 				break;
-			// cout << "checkkk222" << "this remote " << this->remoteId << endl;
+			cout << "checkkk222" << "this remote " << this->remoteId << endl;
 			if (strcmp(buff->getContent(), "init") == 0)
 			{
 				std::cout << "in receive: " << buff->getContent() << std::endl;
@@ -201,6 +198,7 @@ void ServerConnection::receive()
 				if (initcounter->load() == handler->number_of_nodes - 1)
 				{
 					cout << "All nodes initialized, starting the protocol..." << endl;
+					// activate_timeout = true;
 				}
 			}
 			else
@@ -235,16 +233,30 @@ void ServerConnection::receive()
 	}
 	catch (Exception *e)
 	{
-		
-		std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
-		handler->setfailurenode(this->remoteId);
 
-		// make this connection unusable
-		if (socket) { try { socket->close(); } catch (Exception *e2) {} }
-		socket = nullptr;
+		{
+			std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
+			handler->setfailurenode(this->remoteId);
+			// handler->quorum = handler->quorum - 1;
 
-		// free and rethrow to let upper layer erase() this connection
-		Exception* tmp = e; e = nullptr; delete tmp;
+			activate_timeout = false; // Reset the flag after marking as failed
+		}
+
 		throw;
+
+
+// #ifdef FAILURE_MODE
+// 		// std::string msg = e->getMessage();
+// 		// // if (activate_timeout)
+// 		// // if (msg.find("closed the socket") != std::string::npos && activate_timeout)
+// 		// {
+// 		// 	std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
+// 		// 	handler->setfailurenode(this->remoteId);
+// 		// 	activate_timeout = false; // Reset the flag after marking as failed
+// 		// }
+// #else
+// 		std::cerr << "Receive failed:" << e->getMessage() << std::endl;
+// #endif
+		delete e;
 	}
 }
