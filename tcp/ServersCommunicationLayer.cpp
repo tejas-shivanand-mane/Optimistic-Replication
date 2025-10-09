@@ -95,9 +95,15 @@ void ServersCommunicationLayer::broadcast(string &message)
             }
             catch (Exception *e)
             {
-                cout << e->getMessage() << endl;
-                cout << "Unable to send messages to remote " << it.first << endl;
-                delete e;
+                ServerConnection* conn = it.second;
+                cout<< "Exception caught by ServerCommunication Layer during broadcast to remoteID: " << conn->remoteId << endl;
+                if (conn != nullptr)
+                {
+                    conn->closeSocket();
+
+                    delete conn;  // if ownership is here
+                }
+                it = connections.erase(it.second);  // erase and get next iterator
             }
     }
 }
