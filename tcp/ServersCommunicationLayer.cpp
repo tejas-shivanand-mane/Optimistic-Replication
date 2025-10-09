@@ -83,49 +83,75 @@ ServerConnection *ServersCommunicationLayer::getConnection(int remoteId)
 }
 
 // broadcasts the message to others (does not send it to self)
-void ServersCommunicationLayer::broadcast(string &message)
+// broadcasts the message to others (does not send it to self)
+void ServersCommunicationLayer::broadcast(std::string &message)
 {
-    for (auto it : connections)
+    for (auto it = connections.begin(); it != connections.end(); )  // iterator, not range-for
     {
-        if (getConnection(it.first) != NULL)
-            try
-            {
-                if (it.first != id)
-                    getConnection(it.first)->send(message);
+        ServerConnection* conn = it->second;
+
+        if (conn && it->first != id)
+        {
+            try {
+                conn->send(message);
+                ++it;   // only advance if send succeeds
             }
             catch (Exception *e)
             {
-                ServerConnection* conn = it.second;
-                cout<< "Exception caught by ServerCommunication Layer during broadcast to remoteID: " << conn->remoteId << endl;
-                if (conn != nullptr)
-                {
-                    conn->closeSocket();
+                std::cout << "Exception caught during broadcast to remoteID: "
+                          << conn->remoteId << " → removing connection\n";
 
-                    delete conn;  // if ownership is here
-                }
-                it = connections.erase(it.second);  // erase and get next iterator
+                delete e;  // free the thrown exception
+                conn->closeSocket();
+                delete conn;
+
+                // erase returns the next valid iterator
+                it = connections.erase(it);
+                continue;
             }
+        }
+        else
+        {
+            ++it;  // skip self or null connection
+        }
     }
 }
 
+
+// broadcasts the message to others (does not send it to self)
 void ServersCommunicationLayer::broadcast(Buffer *message)
 {
-    for (auto it : connections)
+    for (auto it = connections.begin(); it != connections.end(); )
     {
-        if (getConnection(it.first) != NULL)
-            try
-            {
-                if (it.first != id)
-                    getConnection(it.first)->send(message);
+        ServerConnection* conn = it->second;
+
+        if (conn && it->first != id)
+        {
+            try {
+                conn->send(message);
+                ++it;   // advance if send succeeds
             }
             catch (Exception *e)
             {
-                cout << e->getMessage() << endl;
-                cout << "Unable to send messages to remote " << it.first << endl;
+                std::cout << "Exception caught during broadcast(Buffer*) to remoteID: "
+                          << conn->remoteId << " → removing connection\n";
+                std::cout << e->getMessage() << std::endl;
                 delete e;
+
+                conn->closeSocket();
+                delete conn;
+
+                it = connections.erase(it);  // erase returns next valid iterator
+                continue;
             }
+        }
+        else
+        {
+            ++it;  // skip self or null connection
+        }
     }
 }
+
 
 void ServersCommunicationLayer::establishConnection(Socket *socket, int remoteId)
 {

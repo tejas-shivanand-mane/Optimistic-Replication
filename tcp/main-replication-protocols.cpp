@@ -327,6 +327,17 @@ int main(int argc, char *argv[])
 
             Call &req = *it;
 #ifndef CRDT
+
+
+            static int last_failed_count = 0;
+            if ((int)hdl->failed_nodes.size() > last_failed_count) {
+                std::cout << "[Recovery] Detected new failure (total failed nodes: "
+                        << hdl->failed_nodes.size() << "). Breaking out of wait state.\n";
+                wait = false;
+                last_failed_count = (int)hdl->failed_nodes.size();
+            }
+
+
             if (wait)
             {
                 if (onetimeprint)
