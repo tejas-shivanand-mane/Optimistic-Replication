@@ -506,7 +506,7 @@ public:
             // std::lock_guard<std::mutex> lock(mtx_ack);
 
 
-            std::cout << "[Debug] quorum=" << q
+            std::cout << "[Debug] quorum=" << quorum
             << " stable_index=" << obj.stable_state.index
             << " waittobestable=" << obj.waittobestable.load()
             << " failed_nodes=" << failed_nodes.size()
