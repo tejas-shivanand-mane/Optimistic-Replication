@@ -489,15 +489,15 @@ int main(int argc, char *argv[])
 
 
         static auto last_debug_print = std::chrono::steady_clock::now();
-        auto now = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_debug_print).count() >= 1)
+        auto now2 = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now2 - last_debug_print).count() >= 1)
         {
             std::cout << "[MainDebug] quorum=" << hdl->quorum.load()
                     << " stable_index=" << hdl->obj.stable_state.index
                     << " waittobestable=" << hdl->obj.waittobestable.load()
                     << " failed_nodes=" << hdl->failed_nodes.size()
                     << std::endl;
-            last_debug_print = now;
+            last_debug_print = now2;
         }
 
 
