@@ -30,13 +30,13 @@ using namespace amirmohsen;
 
 class ServerConnection
 {
-private:
+public:
 	class Sender : public Thread
 	{
 		string *message;
 		Socket *socket;
 
-	public:
+	
 		Sender(string *message, Socket *socket);
 		void run();
 	};

@@ -158,7 +158,7 @@ void ServersCommunicationLayer::handleAllReceives()
             }
             catch (Exception* e)
             {
-                cout<< "Exception caught by ServerCommunication Layer" << endl;
+                cout<< "Exception caught by ServerCommunication Layer for remoteID: " << conn->remoteId << endl;
                 if (conn != nullptr)
                 {
                     conn->closeSocket();
