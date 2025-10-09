@@ -63,7 +63,7 @@ public:
     std::vector<Call> executionList;
     int node_id;
     int number_of_nodes;
-    int quorum;
+    std::atomic<int> quorum;
     int last_failed_count;
     int failed_count;
 
@@ -169,16 +169,31 @@ public:
 
         return len + sizeof(uint64_t) + 2 * sizeof(uint64_t);
     }
-    void setfailurenode(int id)
+
+    void setfailurenode(int failed_remote_id)
     {
-        failed[id - 1] = true;
-        cout<< "test failure node: " << failed[id - 1] << endl;
+        // Ignore bogus/self reports
+        if (failed_remote_id == node_id) return;
 
-        quorum--;
-        stabilizerWithAck();
-        failed_nodes.push_back(id);
+        // Idempotent: only act the first time we see this failure
+        if (!failed[failed_remote_id - 1]) {
+            failed[failed_remote_id - 1] = true;
 
+            // Decrement quorum exactly once per failed node
+            quorum--;                           // see §3 about making this atomic or protected
+
+            failed_nodes.push_back(failed_remote_id);
+
+            std::cout << "[Failure] remote_id=" << failed_remote_id
+                    << " quorum now=" << quorum
+                    << " failed_count=" << failed_nodes.size() << std::endl;
+
+            // Re-run the stabilizer under the new quorum
+            stabilizerWithAck();
+        }
     }
+
+
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
         uint8_t *start = buffer + sizeof(uint64_t);
@@ -453,7 +468,7 @@ public:
         if (call.node_id == node_id)
         { 
             cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum is: " << quorum << std::endl; 
-            if (acks[call.node_id - 1][call.call_id] == (quorum))
+            if (acks[call.node_id - 1][call.call_id] >= (quorum))
             {
                 // std::lock_guard<std::mutex> lock(mtx);
                 stabilizerWithAck();
@@ -463,13 +478,14 @@ public:
         {
             cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum-1 is: " << (quorum-1) << std::endl; 
 
-            if (acks[call.node_id - 1][call.call_id] == (quorum - 1))
+            if (acks[call.node_id - 1][call.call_id] >= (quorum - 1))
             {
                 // std::lock_guard<std::mutex> lock(mtx);
                 stabilizerWithAck();
             }
         }
     }
+
     void stabilizerWithAck()
     {
         bool can_unqued = false;
@@ -488,6 +504,20 @@ public:
             std::lock_guard<std::mutex> lock(mtx);
             int i = obj.stable_state.index;
             // std::lock_guard<std::mutex> lock(mtx_ack);
+
+
+            std::cout << "[Debug] quorum=" << q
+            << " stable_index=" << obj.stable_state.index
+            << " waittobestable=" << obj.waittobestable.load()
+            << " failed_nodes=" << failed_nodes.size()
+            << std::endl;
+
+
+
+
+
+
+
             if (i >= executionList.size())
             {
                 return;
@@ -500,7 +530,7 @@ public:
                 stable = false;
                 if (executionList[i].node_id == node_id)
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] == (quorum))
+                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum))
                     {
                         stable = true;
                         can_unqued = true;
@@ -508,7 +538,7 @@ public:
                 }
                 else
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] == (quorum - 1))
+                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum - 1))
                     {
                         stable = true;
                         can_unqued = true;
