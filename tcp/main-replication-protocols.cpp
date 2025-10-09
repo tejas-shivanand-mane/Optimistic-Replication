@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
     
+    uint64_t current_loop_time;
 // #ifdef FAILURE_MODE
 //     expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
 // #endif
@@ -246,7 +247,15 @@ int main(int argc, char *argv[])
 
     while (!shutdown_requested.load() &&hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
-        std::cout << "In main loop" << std::endl;
+
+        current_loop_time = std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::high_resolution_clock::now().time_since_epoch())
+                               .count();
+
+        if (current_loop_time - main_loop_start %1==0)
+        {
+            std::cout << "In main loop" << std::endl;
+        }                   
 
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
@@ -283,6 +292,11 @@ int main(int argc, char *argv[])
         if (ack_index < std::atomic_load(&hdl->obj.send_ack_call_list)->size())
 
         {
+
+            if (current_loop_time - main_loop_start %1==0)
+            {
+                std::cout << "In main loop: ack_index < std::atomic_load(&hdl->obj.send_ack_call_list)->size()" << std::endl;
+            }             
 
             auto ack_list_snapshot = std::atomic_load(&hdl->obj.send_ack_call_list);
             auto length = hdl->serializeCalls((*ack_list_snapshot)[ack_index], payload);
@@ -339,6 +353,11 @@ int main(int argc, char *argv[])
 #ifndef CRDT
             if (wait)
             {
+
+                if (current_loop_time - main_loop_start %1==0)
+                {
+                    std::cout << "In main loop: if (wait)" << std::endl;
+                }            
                 if (onetimeprint)
                 {
                     // std::cout << "wait for stable index: " << hdl->obj.waittobestable.load() << std::endl;
@@ -364,9 +383,21 @@ int main(int argc, char *argv[])
 
                 //     wait = false;
                 //     last_failed_count = hdl->failed_nodes.size();
+
                 // }
+
+                if (current_loop_time - main_loop_start %1==0)
+                {
+                    std::cout << "In main loop: #if defined(OPTIMISTIC_REPLICATION)" << std::endl;
+                }          
+
+
                 if (!wait)
                 {
+                    if (current_loop_time - main_loop_start %1==0)
+                    {
+                        std::cout << "In main loop: if (!wait)" << std::endl;
+                    }          
                     hdl->localHandler(req, send_flag, permiss, stableindex);
 
                     if (send_flag)
@@ -444,6 +475,12 @@ int main(int argc, char *argv[])
             }
             else
             {
+
+                if (current_loop_time - main_loop_start %1==0)
+                {
+                    std::cout << "In main loop: else" << std::endl;
+                }         
+
                 // preit = it;
                 ++it;
                 early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -466,6 +503,14 @@ int main(int argc, char *argv[])
 #endif
         if (hdl->last_call_stable.load())
         {
+
+            if (current_loop_time - main_loop_start %1==0)
+            {
+                std::cout << "In main loop: hdl->last_call_stable.load()" << std::endl;
+            }         
+
+
+
             real_end_time = std::chrono::duration_cast<std::chrono::microseconds>(
                                 std::chrono::high_resolution_clock::now().time_since_epoch())
                                 .count();
