@@ -235,11 +235,11 @@ void ServerConnection::receive()
 	{
 
 		{
-			std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
-			handler->setfailurenode(this->remoteId);
-			// handler->quorum = handler->quorum - 1;
+    
+			std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
+			handler->pending_failures.push(this->remoteId);
+    
 
-			activate_timeout = false; // Reset the flag after marking as failed
 		}
 
 		throw;

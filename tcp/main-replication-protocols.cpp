@@ -377,6 +377,18 @@ int main(int argc, char *argv[])
 #endif
 
 
+        {
+            std::lock_guard<std::mutex> lock(hdl->failure_queue_mutex);
+            while (!hdl->pending_failures.empty()) {
+                int failed_id = hdl->pending_failures.front();
+                hdl->pending_failures.pop();
+                
+                std::cout << "Processing queued failure for node " << failed_id << std::endl;
+                hdl->setfailurenode(failed_id);  // Now safe - no deadlock risk
+            }
+        }
+
+
         // In your main loop, modify the failure handling:
         if (hdl->failed_nodes.size() > last_failed_count) {
             std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;

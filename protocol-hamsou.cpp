@@ -79,6 +79,8 @@ public:
 
     int failed[64];
     std::unordered_set<int> failed_nodes;
+    std::queue<int> pending_failures;
+    std::mutex failure_queue_mutex;
 
     // std::vector<Call> queuedList;
     int test;
