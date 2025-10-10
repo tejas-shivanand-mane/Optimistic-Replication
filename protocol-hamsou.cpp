@@ -63,7 +63,7 @@ public:
     std::vector<Call> executionList;
     int node_id;
     int number_of_nodes;
-    int quorum;
+    std::atomic<int> quorum;
     int last_failed_count;
     int failed_count;
 
@@ -456,7 +456,7 @@ public:
         if (call.node_id == node_id)
         { 
             cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum is: " << quorum << std::endl; 
-            if (acks[call.node_id - 1][call.call_id] == (quorum))
+            if (acks[call.node_id - 1][call.call_id] >= (quorum))
             {
                 // std::lock_guard<std::mutex> lock(mtx);
                 stabilizerWithAck();
@@ -466,7 +466,7 @@ public:
         {
             cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum-1 is: " << (quorum-1) << std::endl; 
 
-            if (acks[call.node_id - 1][call.call_id] == (quorum - 1))
+            if (acks[call.node_id - 1][call.call_id] >= (quorum - 1))
             {
                 // std::lock_guard<std::mutex> lock(mtx);
                 stabilizerWithAck();
@@ -503,7 +503,7 @@ public:
                 stable = false;
                 if (executionList[i].node_id == node_id)
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] == (quorum))
+                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum))
                     {
                         stable = true;
                         can_unqued = true;
@@ -511,7 +511,7 @@ public:
                 }
                 else
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] == (quorum - 1))
+                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum - 1))
                     {
                         stable = true;
                         can_unqued = true;
