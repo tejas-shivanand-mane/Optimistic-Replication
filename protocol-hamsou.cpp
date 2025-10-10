@@ -180,9 +180,10 @@ public:
         }
         else
         {
-            failed_nodes.insert(id);
             quorum--;
             stabilizerWithAck();
+            failed_nodes.insert(id);
+
         }
 
         
