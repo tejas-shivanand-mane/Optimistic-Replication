@@ -240,6 +240,8 @@ int main(int argc, char *argv[])
                                .count();
     
     uint64_t current_loop_time;
+    uint64_t diff_time;
+
 // #ifdef FAILURE_MODE
 //     expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
 // #endif
@@ -461,17 +463,26 @@ int main(int argc, char *argv[])
                         sent++;
                         // preit = it;
                         ++it;
+
+
+
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
+
+                                
                         delay = 10;
                         wait = false;
 
+                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() -
+                                                      early_start_time;
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << early_response_time_totall << std::endl;
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
 
 
 
@@ -490,10 +501,14 @@ int main(int argc, char *argv[])
                                                           .count() -
                                                       early_start_time;
 
+                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() -
+                                                      early_start_time;
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << early_response_time_totall << std::endl;
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
 
 
                     }
@@ -536,10 +551,14 @@ int main(int argc, char *argv[])
                                                   .count() -
                                               early_start_time;
 
+                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() -
+                                                      early_start_time;
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << early_response_time_totall << std::endl;
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
 
             }
             /*if(it==calls.end())
