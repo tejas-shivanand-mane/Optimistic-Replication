@@ -434,7 +434,8 @@ int main(int argc, char *argv[])
                         payload = &payload_buffer[0];
                         auto buff = std::make_unique<Buffer>();
                         buff->setContent(const_cast<char *>(message.c_str()), length);
-
+                        
+                        std::cout << "Broadcasting with send_flag=true" << std::endl;
                         sc->broadcast(buff.get());
                         sent++;
                         // preit = it;
