@@ -144,6 +144,7 @@ void ServerConnection::closeSocket()
 void ServerConnection::reconnect(Socket *newSocket)
 {
 	std::cout << "reconnecting " << "id: " << id << " remoteId: " << remoteId << std::endl;
+	
 	if (socket == NULL)
 	{
 		if (isToConnect())
@@ -195,7 +196,8 @@ void ServerConnection::receive()
 
 			if (strcmp(buff->getContent(), "init") == 0)
 			{
-				std::cout << "in receive: " << buff->getContent() << std::endl;
+				// std::cout << "in receive: " << buff->getContent() << std::endl;
+
 				initcounter->fetch_add(1);
 				if (initcounter->load() == handler->number_of_nodes - 1)
 				{
