@@ -427,7 +427,7 @@ int main(int argc, char *argv[])
                     
                     std::cout << "Going into localHandler" << std::endl;
                     hdl->localHandler(req, send_flag, permiss, stableindex);
-                    std::cout << "Out of localHandler" << std::endl;
+                    std::cout << "Out of localHandler, send_flag, permiss: " << send_flag << ", " << permiss <<std::endl;
 
                     if (send_flag)
                     {

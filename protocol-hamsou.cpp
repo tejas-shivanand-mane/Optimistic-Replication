@@ -262,12 +262,16 @@ public:
     }
     void localHandler(Call &call, bool &flag, bool &permiss, int &stableindex)
     {
+        std::cout << "localHandler: start" << std::endl;
         std::lock_guard<std::mutex> lock(mtx);
         stableindex = obj.stable_state.index;
         flag = false;
         permiss = false;
+        std::cout << "localHandler: after lock" << std::endl;
         if (obj.locallyPermissibility(call))
         {
+            std::cout << "localHandler: locallyPermissibility loop" << std::endl;
+
             flag = true;
             permiss = true;
 #ifndef CRDT
