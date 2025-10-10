@@ -254,11 +254,11 @@ int main(int argc, char *argv[])
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
 
-        if (static_cast<int>((current_loop_time - main_loop_start) % 2) == 0)
-        {
-            std::cout << "In main loop" << std::endl;
-        }                   
-
+        static uint64_t last_print_time = 0;
+        if (current_loop_time - last_print_time >= 1) {
+            std::cout << "[Main] still alive at t=" << current_loop_time - main_loop_start << "s\n";
+            last_print_time = current_loop_time;
+        }
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
         if (it != calls.end())
