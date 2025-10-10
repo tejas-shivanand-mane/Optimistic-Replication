@@ -181,6 +181,8 @@ public:
 
     void setfailurenode(int id)
     {
+        std::cout << "Node " << id << " marked as failed" << std::endl;
+
         std::lock_guard<std::mutex> lock(mtx_failure); 
         
         if (failed[id - 1]) {
@@ -188,7 +190,7 @@ public:
         }
         
         failed[id - 1] = true;
-        std::cout << "Node " << id << " marked as failed" << std::endl;
+        // std::cout << "Node " << id << " marked as failed" << std::endl;
         
         if (failed_nodes.count(id) == 0) {
             int old_quorum = quorum.fetch_sub(1);
@@ -325,6 +327,9 @@ public:
 #endif
             }
         }
+
+        std::cout << "localHandler: end" << std::endl;
+
     }
 
     int findPosition(const std::string &type, const std::vector<Call> &calls)
