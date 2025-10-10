@@ -248,11 +248,13 @@ int main(int argc, char *argv[])
     while (!shutdown_requested.load() &&hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
+
+
         current_loop_time = std::chrono::duration_cast<std::chrono::seconds>(
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
 
-        if (current_loop_time - main_loop_start %1==0)
+        if (current_loop_time - int(main_loop_start) %1==0)
         {
             std::cout << "In main loop" << std::endl;
         }                   
