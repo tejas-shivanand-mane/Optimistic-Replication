@@ -167,7 +167,7 @@ void ServersCommunicationLayer::handleAllReceives()
                 it = connections.erase(it);  // erase and get next iterator
             }
         }
-        // std::this_thread::sleep_for(std::chrono::microseconds(1));  // prevent busy wait
+        std::this_thread::sleep_for(std::chrono::microseconds(10));  // prevent busy wait
     }
 }
 void ServersCommunicationLayer::closeAllSockets()

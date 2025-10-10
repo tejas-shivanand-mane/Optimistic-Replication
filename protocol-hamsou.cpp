@@ -75,7 +75,7 @@ public:
     std::vector<std::vector<int>> acks;
 
     int failed[64];
-    std::vector<int> failed_nodes;
+    std::unordered_set<int> failed_nodes;
 
     // std::vector<Call> queuedList;
     int test;
@@ -172,11 +172,20 @@ public:
     void setfailurenode(int id)
     {
         failed[id - 1] = true;
-        cout<< "test failure node: " << failed[id - 1] << endl;
+        std::cout<< "test failure node: " << failed[id - 1] << std::endl;
 
-        quorum--;
-        stabilizerWithAck();
-        failed_nodes.push_back(id);
+        if (failed_nodes.count(id) > 0)
+        {
+            stabilizerWithAck();
+        }
+        else
+        {
+            failed_nodes.insert(id);
+            quorum--;
+            stabilizerWithAck();
+        }
+
+        
 
     }
     void deserializeCalls(uint8_t *buffer, Call &call)
@@ -443,7 +452,15 @@ public:
         cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
 
 
-        acks[call.node_id - 1][call.call_id]++;
+        // acks[call.node_id - 1][call.call_id]++;
+
+        if (call.node_id <= 0 || call.node_id > number_of_nodes) return;
+
+        auto &row = acks[call.node_id - 1];
+        if (call.call_id >= (int)row.size()) row.resize(call.call_id + 1, 0);
+        row[call.call_id]++;
+
+
 // std::cout << "Exe - by update ack - type: " << call.type << " and value1: " << " -call id -" << call.call_id << "acks -- " << acks[call.node_id - 1][call.call_id] << "qu size  "<< priorityQueue.size()<<std::endl;
 // #ifdef FAILURE_MODE
 //         int num_failed = 0;
