@@ -497,6 +497,8 @@ public:
     }
     void stabilizerWithAck()
     {
+
+
         bool can_unqued = false;
         // int quorum = number_of_nodes - 1;
 // #ifdef FAILURE_MODE
@@ -505,7 +507,6 @@ public:
 //             if (failed[i])
 //                 num_failed++;
 
-//         cout<< "stabilizerWithAck: num failed nodes: " << num_failed << std::endl;
 
 //         quorum -= num_failed;
 // #endif
@@ -520,8 +521,26 @@ public:
 
             bool stable = true;
 
+
+            
+            uint64_t stab_loop_start = std::chrono::duration_cast<std::chrono::seconds>(
+                                    std::chrono::high_resolution_clock::now().time_since_epoch())
+                                    .count();
+
+            uint64_t current_loop_time;
+
             while (stable && i < executionList.size())
             {
+
+                
+
+                static uint64_t last_print_time = 0;
+                if (current_loop_time - last_print_time >= 1) {
+                    std::cout<< "Running stabilizerWithAck loop(): " << std::endl;
+                    last_print_time = current_loop_time;
+                }
+
+
                 stable = false;
                 if (executionList[i].node_id == node_id)
                 {
