@@ -169,26 +169,27 @@ public:
 
         return len + sizeof(uint64_t) + 2 * sizeof(uint64_t);
     }
+
     void setfailurenode(int id)
     {
-        failed[id - 1] = true;
-        std::cout<< "test failure node: " << failed[id - 1] << std::endl;
-
-        if (failed_nodes.count(id) > 0)
-        {
-            stabilizerWithAck();
-        }
-        else
-        {
-            quorum--;
-            stabilizerWithAck();
-            failed_nodes.insert(id);
-
-        }
-
+        std::lock_guard<std::mutex> lock(mtx);  // Protect the whole operation
         
-
+        if (failed[id - 1]) {
+            return;  // Already marked as failed
+        }
+        
+        failed[id - 1] = true;
+        std::cout << "Node " << id << " marked as failed" << std::endl;
+        
+        if (failed_nodes.count(id) == 0) {
+            int old_quorum = quorum.fetch_sub(1);
+            std::cout << "Quorum adjusted: " << old_quorum << " -> " << (old_quorum - 1) << std::endl;
+            failed_nodes.insert(id);
+        }
+        
+        stabilizerWithAck();
     }
+
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
         std::cout << "deserializing calls" << std::endl;
@@ -453,7 +454,7 @@ public:
         }*/
     void updateAcksTable(Call call)
     {
-        // int quorum = number_of_nodes - 1;
+        int current_quorum = quorum.load();
         cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
 
 
@@ -475,25 +476,25 @@ public:
 //         cout<< "updateAcksTable: num failed nodes: " << num_failed << std::endl;
 //         quorum -= num_failed;
 // #endif
-        if (call.node_id == node_id)
-        { 
-            cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum is: " << quorum << std::endl; 
-            if (acks[call.node_id - 1][call.call_id] >= (quorum))
-            {
-                // std::lock_guard<std::mutex> lock(mtx);
+        if (call.node_id == node_id) {
+            cout << "acks[" << call.node_id << "][" << call.call_id << "] = " 
+                << acks[call.node_id - 1][call.call_id] 
+                << ", current_quorum = " << current_quorum << std::endl;
+            
+            if (acks[call.node_id - 1][call.call_id] >= current_quorum) {
+                stabilizerWithAck();
+            }
+        } else {
+            cout << "acks[" << call.node_id << "][" << call.call_id << "] = " 
+                << acks[call.node_id - 1][call.call_id] 
+                << ", need " << (current_quorum - 1) 
+                << " (current_quorum=" << current_quorum << ")" << std::endl;
+            
+            if (acks[call.node_id - 1][call.call_id] >= (current_quorum - 1)) {
                 stabilizerWithAck();
             }
         }
-        else
-        {
-            cout<< "acks[call.node_id - 1][call.call_id] is: "<< acks[call.node_id - 1][call.call_id] << ", quorum-1 is: " << (quorum-1) << std::endl; 
 
-            if (acks[call.node_id - 1][call.call_id] >= (quorum - 1))
-            {
-                // std::lock_guard<std::mutex> lock(mtx);
-                stabilizerWithAck();
-            }
-        }
     }
     void stabilizerWithAck()
     {
@@ -522,7 +523,7 @@ public:
             bool stable = true;
 
 
-            
+
             uint64_t stab_loop_start = std::chrono::duration_cast<std::chrono::seconds>(
                                     std::chrono::high_resolution_clock::now().time_since_epoch())
                                     .count();
