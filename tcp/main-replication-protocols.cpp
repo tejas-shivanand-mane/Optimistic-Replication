@@ -517,7 +517,7 @@ int main(int argc, char *argv[])
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+                        std::cout << "Read Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
 
             }
             /*if(it==calls.end())
