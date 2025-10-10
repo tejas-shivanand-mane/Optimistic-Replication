@@ -171,13 +171,13 @@ void ServersCommunicationLayer::handleAllReceives()
 
                 // std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
                 // handler->setfailurenode(this->remoteId);
+                cout<< "Erasing connection to remoteid: "<< conn->remoteId << endl;
 
                 if (conn != nullptr)
                 {
                     conn->closeSocket();
                     delete conn;  // if ownership is here
                 }
-                cout<< "Erasing connection to remoteid: "<< conn->remoteId << endl;
                 it = connections.erase(it);  // erase and get next iterator
 
 
