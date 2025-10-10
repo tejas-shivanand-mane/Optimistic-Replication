@@ -240,6 +240,9 @@ public:
         // Assign the deserialized values to the call object
         call = Call(type, value1, value2, node_id, call_id, stable);
         call.call_vector_clock = call_vector_clock;
+
+        std::cout << "deserialized calls" << std::endl;
+
     }
     void localHandler(Call &call, bool &flag, bool &permiss, int &stableindex)
     {

@@ -30,7 +30,7 @@ using namespace amirmohsen;
 
 class ServerConnection
 {
-private:
+public:
 	class Sender : public Thread
 	{
 		string *message;

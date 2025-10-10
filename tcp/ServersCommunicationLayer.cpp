@@ -168,12 +168,20 @@ void ServersCommunicationLayer::handleAllReceives()
             catch (Exception* e)
             {
                 cout<< "Exception caught by ServerCommunication Layer" << endl;
+
+                // std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
+                // handler->setfailurenode(this->remoteId);
+
                 if (conn != nullptr)
                 {
                     conn->closeSocket();
                     delete conn;  // if ownership is here
                 }
+                cout<< "Erasing connection to remoteid: "<< conn->remoteId << endl;
                 it = connections.erase(it);  // erase and get next iterator
+
+
+
             }
         }
         std::this_thread::sleep_for(std::chrono::microseconds(10));  // prevent busy wait
