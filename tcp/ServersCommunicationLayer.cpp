@@ -169,8 +169,6 @@ void ServersCommunicationLayer::handleAllReceives()
             {
                 cout<< "Exception caught by ServerCommunication Layer" << endl;
 
-                // std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
-                // handler->setfailurenode(this->remoteId);
                 cout<< "Erasing connection to remoteid: "<< conn->remoteId << endl;
 
                 if (conn != nullptr)

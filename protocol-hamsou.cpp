@@ -196,6 +196,7 @@ public:
             
             // Process any queued operations that might now be valid
             while (!priorityQueue.empty()) {
+                std::cout << "Process any queued operations that might now be valid" << std::endl;
                 Call topCall = priorityQueue.top();
                 bool remove_flag = remoteHandler(false, topCall);
                 if (remove_flag) {
