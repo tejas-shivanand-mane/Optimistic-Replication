@@ -61,7 +61,7 @@ public:
 
     std::atomic<bool> failure_just_handled{false};
 
-    std::mutex mtx;
+    std::recursive_mutex mtx;
     std::mutex mtx_ack;
     std::vector<Call> executionList;
     int node_id;
