@@ -193,7 +193,8 @@ public:
             
             // Force complete re-evaluation with new quorum
             stabilizerWithAck();
-            
+            std::cout << "stabilizerWithAck complete" << std::endl;
+
             // Process any queued operations that might now be valid
             while (!priorityQueue.empty()) {
                 std::cout << "Process any queued operations that might now be valid" << std::endl;
