@@ -63,6 +63,10 @@ public:
 
     std::mutex mtx;
     std::mutex mtx_ack;
+    
+    std::mutex mtx_failure; 
+
+
     std::vector<Call> executionList;
     int node_id;
     int number_of_nodes;
@@ -177,7 +181,7 @@ public:
 
     void setfailurenode(int id)
     {
-        // std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard<std::mutex> lock(mtx_failure); 
         
         if (failed[id - 1]) {
             return;
@@ -483,7 +487,7 @@ public:
     {
         int current_quorum = quorum.load();
 
-        // cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
+        cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
 
 
         // acks[call.node_id - 1][call.call_id]++;
