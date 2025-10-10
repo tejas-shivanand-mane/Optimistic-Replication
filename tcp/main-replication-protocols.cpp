@@ -377,16 +377,33 @@ int main(int argc, char *argv[])
 #endif
 
 
-            if (hdl->failed_nodes.size()> last_failed_count)
-            {
-                // std::cout << "wait is : " << wait << std::endl;
-
-                std::cout << "Handling wait due to failure : " << wait << std::endl;
-
+        // In your main loop, modify the failure handling:
+        if (hdl->failed_nodes.size() > last_failed_count) {
+            std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
+            
+            if (wait) {
+                // We were waiting on an operation that's now invalid due to failure
                 wait = false;
                 last_failed_count = hdl->failed_nodes.size();
-
+                
+                // CRITICAL: Skip the current operation that was causing the wait
+                if (it != calls.end()) {
+                    std::cout << "Skipping blocked operation " << it->type 
+                            << " after failure detection" << std::endl;
+                    ++it;  // Move to next operation
+                    
+                    // Update counters for skipped operation
+                    early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        std::chrono::high_resolution_clock::now().time_since_epoch())
+                        .count() - early_start_time;
+                }
+                
+                continue;  // Go to next loop iteration with next operation
+            } else {
+                wait = false;  // Just in case
+                last_failed_count = hdl->failed_nodes.size();
             }
+        }
 
 
 
