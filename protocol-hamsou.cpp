@@ -191,11 +191,11 @@ public:
             std::cout << "Quorum adjusted: " << old_quorum << " -> " << (old_quorum - 1) << std::endl;
             failed_nodes.insert(id);
             
-            // Force complete re-evaluation with new quorum
+            
             stabilizerWithAck();
             std::cout << "stabilizerWithAck complete" << std::endl;
 
-            // Process any queued operations that might now be valid
+            
             while (!priorityQueue.empty()) {
                 std::cout << "Process any queued operations that might now be valid" << std::endl;
                 Call topCall = priorityQueue.top();
@@ -211,7 +211,8 @@ public:
 
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
-        std::cout << "deserializing calls" << std::endl;
+        // std::cout << "deserializing calls" << std::endl;
+
         uint8_t *start = buffer + sizeof(uint64_t);
         auto temp = start;
 
@@ -261,20 +262,23 @@ public:
         call = Call(type, value1, value2, node_id, call_id, stable);
         call.call_vector_clock = call_vector_clock;
 
-        std::cout << "deserialized calls" << std::endl;
+        // std::cout << "deserialized calls" << std::endl;
 
     }
     void localHandler(Call &call, bool &flag, bool &permiss, int &stableindex)
     {
-        std::cout << "localHandler: start" << std::endl;
+        // std::cout << "localHandler: start" << std::endl;
+
         std::lock_guard<std::mutex> lock(mtx);
         stableindex = obj.stable_state.index;
         flag = false;
         permiss = false;
-        std::cout << "localHandler: after lock" << std::endl;
+
+        // std::cout << "localHandler: after lock" << std::endl;
+
         if (obj.locallyPermissibility(call))
         {
-            std::cout << "localHandler: locallyPermissibility loop" << std::endl;
+            // std::cout << "localHandler: locallyPermissibility loop" << std::endl;
 
             flag = true;
             permiss = true;
@@ -478,7 +482,8 @@ public:
     void updateAcksTable(Call call)
     {
         int current_quorum = quorum.load();
-        cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
+
+        // cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
 
 
         // acks[call.node_id - 1][call.call_id]++;
@@ -500,18 +505,21 @@ public:
 //         quorum -= num_failed;
 // #endif
         if (call.node_id == node_id) {
-            cout << "acks[" << call.node_id << "][" << call.call_id << "] = " 
-                << acks[call.node_id - 1][call.call_id] 
-                << ", current_quorum = " << current_quorum << std::endl;
+
+            // cout << "acks[" << call.node_id << "][" << call.call_id << "] = " 
+            //     << acks[call.node_id - 1][call.call_id] 
+            //     << ", current_quorum = " << current_quorum << std::endl;
             
             if (acks[call.node_id - 1][call.call_id] >= current_quorum) {
                 stabilizerWithAck();
             }
         } else {
-            cout << "acks[" << call.node_id << "][" << call.call_id << "] = " 
-                << acks[call.node_id - 1][call.call_id] 
-                << ", need " << (current_quorum - 1) 
-                << " (current_quorum=" << current_quorum << ")" << std::endl;
+
+
+            // cout << "acks[" << call.node_id << "][" << call.call_id << "] = " 
+            //     << acks[call.node_id - 1][call.call_id] 
+            //     << ", need " << (current_quorum - 1) 
+            //     << " (current_quorum=" << current_quorum << ")" << std::endl;
             
             if (acks[call.node_id - 1][call.call_id] >= (current_quorum - 1)) {
                 stabilizerWithAck();

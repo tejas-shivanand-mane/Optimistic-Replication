@@ -22,6 +22,7 @@ std::atomic<int> *initcounter;
 #include <csignal>
 
 // Global pointers for signal handler
+
 ServersCommunicationLayer* global_sc = nullptr;
 Handler* global_hdl = nullptr;
 std::atomic<bool> shutdown_requested{false};
@@ -31,6 +32,7 @@ std::atomic<bool> shutdown_requested{false};
 
 void shutdownHandler(int signum) {
     std::cout << "\n========================================" << std::endl;
+    
     std::cout << "[SHUTDOWN HOOK] Caught signal " << signum << std::endl;
     
     if (signum == SIGTERM) {
@@ -295,10 +297,10 @@ int main(int argc, char *argv[])
 
         {
 
-            if (current_loop_time - main_loop_start %1==0)
-            {
-                std::cout << "In main loop: ack_index < std::atomic_load(&hdl->obj.send_ack_call_list)->size()" << std::endl;
-            }             
+            // if (current_loop_time - main_loop_start %1==0)
+            // {
+            //     std::cout << "In main loop: ack_index < std::atomic_load(&hdl->obj.send_ack_call_list)->size()" << std::endl;
+            // }             
 
             auto ack_list_snapshot = std::atomic_load(&hdl->obj.send_ack_call_list);
             auto length = hdl->serializeCalls((*ack_list_snapshot)[ack_index], payload);
@@ -356,10 +358,11 @@ int main(int argc, char *argv[])
             if (wait)
             {
 
-                if (current_loop_time - main_loop_start %1==0)
-                {
-                    std::cout << "In main loop: if (wait)" << std::endl;
-                }            
+                // if (current_loop_time - main_loop_start %1==0)
+                // {
+                //     std::cout << "In main loop: if (wait)" << std::endl;
+                // }            
+
                 if (onetimeprint)
                 {
                     // std::cout << "wait for stable index: " << hdl->obj.waittobestable.load() << std::endl;
@@ -384,35 +387,37 @@ int main(int argc, char *argv[])
                 hdl->pending_failures.pop();
                 
                 std::cout << "Processing queued failure for node " << failed_id << std::endl;
+
                 hdl->setfailurenode(failed_id);  // Now safe - no deadlock risk
             }
         }
 
 
-        // In your main loop, modify the failure handling:
         if (hdl->failed_nodes.size() > last_failed_count) {
-            std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
+            // std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
             
             if (wait) {
-                // We were waiting on an operation that's now invalid due to failure
                 wait = false;
                 last_failed_count = hdl->failed_nodes.size();
                 
-                // CRITICAL: Skip the current operation that was causing the wait
+                // skipping the current operation that was causing the wait
                 if (it != calls.end()) {
+
                     std::cout << "Skipping blocked operation " << it->type 
                             << " after failure detection" << std::endl;
+
                     ++it;  // Move to next operation
                     
                     // Update counters for skipped operation
+
                     early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                         std::chrono::high_resolution_clock::now().time_since_epoch())
                         .count() - early_start_time;
                 }
                 
-                continue;  // Go to next loop iteration with next operation
+                continue;  
             } else {
-                wait = false;  // Just in case
+                wait = false;  
                 last_failed_count = hdl->failed_nodes.size();
             }
         }
@@ -424,22 +429,22 @@ int main(int argc, char *argv[])
 #if defined(OPTIMISTIC_REPLICATION)
 
 
-                if (current_loop_time - main_loop_start %1==0)
-                {
-                    std::cout << "In main loop: #if defined(OPTIMISTIC_REPLICATION)" << std::endl;
-                }          
+                // if (current_loop_time - main_loop_start %1==0)
+                // {
+                //     std::cout << "In main loop: #if defined(OPTIMISTIC_REPLICATION)" << std::endl;
+                // }          
 
 
                 if (!wait)
                 {
-                    if (current_loop_time - main_loop_start %1==0)
-                    {
-                        std::cout << "In main loop: if (!wait)" << std::endl;
-                    }  
+                    // if (current_loop_time - main_loop_start %1==0)
+                    // {
+                    //     std::cout << "In main loop: if (!wait)" << std::endl;
+                    // }  
                     
-                    std::cout << "Going into localHandler" << std::endl;
+
                     hdl->localHandler(req, send_flag, permiss, stableindex);
-                    std::cout << "Out of localHandler, send_flag, permiss: " << send_flag << ", " << permiss <<std::endl;
+
 
                     if (send_flag)
                     {
@@ -518,10 +523,10 @@ int main(int argc, char *argv[])
             else
             {
 
-                if (current_loop_time - main_loop_start %1==0)
-                {
-                    std::cout << "In main loop: else" << std::endl;
-                }         
+                // if (current_loop_time - main_loop_start %1==0)
+                // {
+                //     std::cout << "In main loop: else" << std::endl;
+                // }         
 
                 // preit = it;
                 ++it;
@@ -546,10 +551,10 @@ int main(int argc, char *argv[])
         if (hdl->last_call_stable.load())
         {
 
-            if (current_loop_time - main_loop_start %1==0)
-            {
-                std::cout << "In main loop: hdl->last_call_stable.load()" << std::endl;
-            }         
+            // if (current_loop_time - main_loop_start %1==0)
+            // {
+            //     std::cout << "In main loop: hdl->last_call_stable.load()" << std::endl;
+            // }         
 
 
 

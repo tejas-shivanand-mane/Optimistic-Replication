@@ -149,7 +149,10 @@ void ServersCommunicationLayer::handleAllReceives()
         static auto last_pump = std::chrono::steady_clock::now();
         auto now = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::seconds>(now - last_pump).count() >= 1) {
-            std::cout << "[Pump] alive connections=" << connections.size() << std::endl;
+
+            // std::cout << "[Pump] alive connections=" << connections.size() << std::endl;
+
+
             last_pump = now;
         }
 
@@ -162,7 +165,7 @@ void ServersCommunicationLayer::handleAllReceives()
                 if (conn != nullptr)
                 {
                     conn->receive();
-                    ++it;  // advance iterator only if no exception
+                    ++it;  
                 }
             }
             catch (Exception* e)
@@ -174,9 +177,9 @@ void ServersCommunicationLayer::handleAllReceives()
                 if (conn != nullptr)
                 {
                     conn->closeSocket();
-                    delete conn;  // if ownership is here
+                    delete conn;  
                 }
-                it = connections.erase(it);  // erase and get next iterator
+                it = connections.erase(it);  
 
 
 
