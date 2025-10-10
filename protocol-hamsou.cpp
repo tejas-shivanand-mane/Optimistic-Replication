@@ -61,7 +61,7 @@ public:
 
     std::atomic<bool> failure_just_handled{false};
 
-    std::recursive_mutex mtx;
+    std::mutex mtx;
     std::mutex mtx_ack;
     std::vector<Call> executionList;
     int node_id;
@@ -177,7 +177,7 @@ public:
 
     void setfailurenode(int id)
     {
-        std::lock_guard<std::mutex> lock(mtx);
+        // std::lock_guard<std::mutex> lock(mtx);
         
         if (failed[id - 1]) {
             return;
