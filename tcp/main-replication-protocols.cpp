@@ -396,7 +396,7 @@ int main(int argc, char *argv[])
 
 
         if (hdl->failed_nodes.size() > last_failed_count) {
-            // std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
+            std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
             
             if (wait) {
                 wait = false;
