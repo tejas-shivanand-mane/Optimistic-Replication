@@ -423,8 +423,11 @@ int main(int argc, char *argv[])
                     if (current_loop_time - main_loop_start %1==0)
                     {
                         std::cout << "In main loop: if (!wait)" << std::endl;
-                    }          
+                    }  
+                    
+                    std::cout << "Going into localHandler" << std::endl;
                     hdl->localHandler(req, send_flag, permiss, stableindex);
+                    std::cout << "Out of localHandler" << std::endl;
 
                     if (send_flag)
                     {
