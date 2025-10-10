@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
 
-        if (int(current_loop_time - main_loop_start) %2==0)
+        if (static_cast<int>((current_loop_time - main_loop_start) % 2) == 0)
         {
             std::cout << "In main loop" << std::endl;
         }                   
