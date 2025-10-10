@@ -58,6 +58,9 @@ public:
     Opcrdtreg obj;
 #endif
 public:
+
+    std::atomic<bool> failure_just_handled{false};
+
     std::mutex mtx;
     std::mutex mtx_ack;
     std::vector<Call> executionList;
@@ -172,10 +175,10 @@ public:
 
     void setfailurenode(int id)
     {
-        std::lock_guard<std::mutex> lock(mtx);  // Protect the whole operation
+        std::lock_guard<std::mutex> lock(mtx);
         
         if (failed[id - 1]) {
-            return;  // Already marked as failed
+            return;
         }
         
         failed[id - 1] = true;
@@ -185,9 +188,21 @@ public:
             int old_quorum = quorum.fetch_sub(1);
             std::cout << "Quorum adjusted: " << old_quorum << " -> " << (old_quorum - 1) << std::endl;
             failed_nodes.insert(id);
+            
+            // Force complete re-evaluation with new quorum
+            stabilizerWithAck();
+            
+            // Process any queued operations that might now be valid
+            while (!priorityQueue.empty()) {
+                Call topCall = priorityQueue.top();
+                bool remove_flag = remoteHandler(false, topCall);
+                if (remove_flag) {
+                    priorityQueue.pop();
+                } else {
+                    break;
+                }
+            }
         }
-        
-        stabilizerWithAck();
     }
 
     void deserializeCalls(uint8_t *buffer, Call &call)
