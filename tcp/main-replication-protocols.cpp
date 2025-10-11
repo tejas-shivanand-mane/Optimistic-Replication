@@ -391,7 +391,7 @@ int main(int argc, char *argv[])
                 hdl->pending_failures.pop();
 
                 // Check if already processed
-                
+
                 if (hdl->failed_nodes.count(failed_id) > 0) {
                     std::cout << "Node " << failed_id << " already marked as failed, skipping" << std::endl;
                     continue;
@@ -456,7 +456,7 @@ int main(int argc, char *argv[])
                     
 
                     hdl->localHandler(req, send_flag, permiss, stableindex);
-                    std::cout <<"send_flag, permiss, failure_skip is " << send_flag << ", " << permiss << ", " << failure_skip << std::endl;
+                    // std::cout <<"send_flag, permiss, failure_skip is " << send_flag << ", " << permiss << ", " << failure_skip << std::endl;
 
                     if (send_flag)
                     {
@@ -467,11 +467,11 @@ int main(int argc, char *argv[])
                         auto buff = std::make_unique<Buffer>();
                         buff->setContent(const_cast<char *>(message.c_str()), length);
                         
-                        std::cout << "Broadcasting with send_flag=true" << std::endl;
+                        // std::cout << "Broadcasting with send_flag=true" << std::endl;
 
                         sc->broadcast(buff.get());
 
-                        std::cout << "Done Broadcasting with send_flag=true" << std::endl;
+                        // std::cout << "Done Broadcasting with send_flag=true" << std::endl;
 
                         sent++;
                         // preit = it;
