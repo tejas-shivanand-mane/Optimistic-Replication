@@ -487,14 +487,6 @@ public:
         int current_quorum = quorum.load();
 
 
-
-        // NEW: Don't process acks from failed nodes
-        if (failed[call.node_id - 1]) {
-            std::cout << "Ignoring ack from failed node " << call.node_id 
-                    << " (call_id=" << call.call_id << ")" << std::endl;
-            return;
-        }
-
         cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
 
 
