@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::string loc = "/home/jsabe004/Optimistic-Replication/wellcoordination/workload/";
+  std::string loc = "/home/tejas/Optimistic-Replication/wellcoordination/workload/";
 
   int nr_procs = std::atoi(argv[1]);
   int num_ops = std::atoi(argv[2]);
