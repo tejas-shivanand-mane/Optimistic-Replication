@@ -167,7 +167,7 @@ void ServersCommunicationLayer::handleAllReceives()
         auto now = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::seconds>(now - last_pump).count() >= 1) {
 
-            // std::cout << "[Pump] alive connections=" << connections.size() << std::endl;
+            std::cout << "[Pump] alive connections=" << connections.size() << std::endl;
 
 
             last_pump = now;
