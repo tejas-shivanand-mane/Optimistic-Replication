@@ -182,28 +182,24 @@ public:
     void setfailurenode(int id)
     {
         std::cout << "Node " << id << " marked as failed" << std::endl;
-
-        std::lock_guard<std::mutex> lock(mtx_failure); 
+        
+        std::lock_guard<std::mutex> lock(mtx_failure);
         
         if (failed[id - 1]) {
             return;
         }
         
         failed[id - 1] = true;
-        // std::cout << "Node " << id << " marked as failed" << std::endl;
         
         if (failed_nodes.count(id) == 0) {
-            // int old_quorum = quorum.fetch_sub(1);
-            // std::cout << "Quorum adjusted: " << old_quorum << " -> " << (old_quorum - 1) << std::endl;
-
             failed_nodes.insert(id);
-
-
+            
+            // This will set acks to 1 and stabilize
             stabilizerWithAck(id);
             std::cout << "stabilizerWithAck(failID) complete" << std::endl;
         }
     }
-
+    
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
         // std::cout << "deserializing calls" << std::endl;
@@ -528,10 +524,8 @@ public:
 
     void stabilizerWithAck(int failID)
     {
-
-
         bool can_unqued = false;
-
+        
         // NEW: If a failID is provided (not 0), mark all its acks as received
         if (failID > 0 && failID <= number_of_nodes) {
             std::cout << "stabilizerWithAck(int failID): Setting all acks for failed node " << failID << " to 1" << std::endl;
@@ -543,47 +537,27 @@ public:
                 }
             }
         }
-
-
-
-
-
-
-
-
         
         {
             std::lock_guard<std::mutex> lock(mtx);
             int i = obj.stable_state.index;
-            // std::lock_guard<std::mutex> lock(mtx_ack);
+            
             if (i >= executionList.size())
             {
                 return;
             }
-
+            
             bool stable = true;
+            
 
-
-
-            uint64_t stab_loop_start = std::chrono::duration_cast<std::chrono::seconds>(
-                                    std::chrono::high_resolution_clock::now().time_since_epoch())
-                                    .count();
-
-            uint64_t current_loop_time;
+            
             std::cout << "i, executionList.size(): " << i << ", " << executionList.size() << std::endl;
+            
             while (stable && i < executionList.size())
             {
-
                 
-
-                static uint64_t last_print_time = 0;
-                if (current_loop_time - last_print_time >= 1) {
-                    std::cout<< "Running stabilizerWithAck(failid) loop(): " << std::endl;
-                    last_print_time = current_loop_time;
-                }
-
-
                 stable = false;
+                
                 if (executionList[i].node_id == node_id)
                 {
                     if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum))
@@ -600,11 +574,17 @@ public:
                         can_unqued = true;
                     }
                 }
+                
                 if (stable)
                 {
                     if (executionList[i].node_id == node_id && executionList[i].call_id == (expected_calls / number_of_nodes) - 1)
                         last_call_stable.store(true);
-                    std::cout << "Exe - stablized - type: " << executionList[i].type << " and value1: " << executionList[i].value1 << " -stable index " << obj.stable_state.index<< "que size"<< priorityQueue.size()<< std::endl;
+                        
+                    std::cout << "Exe - stablized - type: " << executionList[i].type 
+                            << " and value1: " << executionList[i].value1 
+                            << " -stable index " << obj.stable_state.index
+                            << " que size " << priorityQueue.size() << std::endl;
+                            
                     obj.updateStableState(executionList[i]);
                     i++;
                     obj.stable_state.index++;
@@ -612,6 +592,7 @@ public:
                 }
             }
         }
+        
         if (can_unqued)
         {
             while (!priorityQueue.empty())
@@ -651,23 +632,11 @@ public:
 
 
 
-            uint64_t stab_loop_start = std::chrono::duration_cast<std::chrono::seconds>(
-                                    std::chrono::high_resolution_clock::now().time_since_epoch())
-                                    .count();
 
-            uint64_t current_loop_time;
+
             std::cout << "i, executionList.size(): " << i << ", " << executionList.size() << std::endl;
             while (stable && i < executionList.size())
             {
-
-                
-
-                static uint64_t last_print_time = 0;
-                if (current_loop_time - last_print_time >= 1) {
-                    std::cout<< "Running stabilizerWithAck loop(): " << std::endl;
-                    last_print_time = current_loop_time;
-                }
-
 
                 stable = false;
                 if (executionList[i].node_id == node_id)
