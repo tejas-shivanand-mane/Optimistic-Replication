@@ -373,6 +373,34 @@ int main(int argc, char *argv[])
             }
 
             Call &req = *it;
+
+
+            {
+                std::lock_guard<std::mutex> lock(hdl->failure_queue_mutex);
+                while (!hdl->pending_failures.empty()) {
+                    int failed_id = hdl->pending_failures.front();
+                    hdl->pending_failures.pop();
+
+                    if (hdl->failed_nodes.count(failed_id) > 0) {
+                        continue;
+                    }
+                    
+                    std::cout << "Processing queued failure for node " << failed_id << std::endl;
+                    hdl->setfailurenode(failed_id);
+                    
+                    // Clear wait flag to allow retry
+                    if (wait) {
+                        std::cout << "Clearing wait flag for retry after failure" << std::endl;
+                        wait = false;
+                    }
+                }
+            }
+
+
+
+
+
+
 #ifndef CRDT
             if (wait)
             {
@@ -399,24 +427,6 @@ int main(int argc, char *argv[])
 #endif
 
 
-        {
-            std::lock_guard<std::mutex> lock(hdl->failure_queue_mutex);
-            while (!hdl->pending_failures.empty()) {
-                int failed_id = hdl->pending_failures.front();
-                hdl->pending_failures.pop();
-
-                // Check if already processed
-
-                if (hdl->failed_nodes.count(failed_id) > 0) {
-                    std::cout << "Node " << failed_id << " already marked as failed, skipping" << std::endl;
-                    continue;
-                }
-                std::cout << "Processing queued failure for node " << failed_id << std::endl;
-
-                hdl->setfailurenode(failed_id);  // Now safe - no deadlock risk
-                wait =false;
-            }
-        }
 
 
         // if (hdl->failed_nodes.size() > last_failed_count) {
