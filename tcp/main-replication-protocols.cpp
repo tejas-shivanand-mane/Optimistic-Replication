@@ -265,7 +265,6 @@ int main(int argc, char *argv[])
 
     int last_failed_count = hdl->failed_nodes.size();
 
-    bool failure_skip = false;
 
     while (!shutdown_requested.load() &&hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
@@ -415,6 +414,7 @@ int main(int argc, char *argv[])
                 std::cout << "Processing queued failure for node " << failed_id << std::endl;
 
                 hdl->setfailurenode(failed_id);  // Now safe - no deadlock risk
+                wait =false;
             }
         }
 
@@ -422,7 +422,6 @@ int main(int argc, char *argv[])
         // if (hdl->failed_nodes.size() > last_failed_count) {
         //     std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
 
-        //     failure_skip = true;
             
         //     if (wait) {
         //         wait = false;
@@ -472,7 +471,6 @@ int main(int argc, char *argv[])
                     
 
                     hdl->localHandler(req, send_flag, permiss, stableindex);
-                    std::cout <<"send_flag, permiss, failure_skip is " << send_flag << ", " << permiss << ", " << failure_skip << std::endl;
 
                     if (send_flag)
                     {
@@ -516,7 +514,6 @@ int main(int argc, char *argv[])
 
 
                     }
-                    // else if (permiss &&!failure_skip)
                     else if (permiss)
                     {
                         
@@ -526,10 +523,7 @@ int main(int argc, char *argv[])
                     else
                     {
 
-                        if (failure_skip)
-                        {
-                            failure_skip = false;
-                        }
+
                         // preit = it;
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
