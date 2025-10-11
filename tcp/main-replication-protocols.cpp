@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
                     
 
                     hdl->localHandler(req, send_flag, permiss, stableindex);
-                    std::cout <<"send_flag, permiss is " << send_flag << ", " << permiss << std::endl;
+                    std::cout <<"send_flag, permiss, failure_skip is " << send_flag << ", " << permiss << ", " << failure_skip << std::endl;
 
                     if (send_flag)
                     {
@@ -496,6 +496,7 @@ int main(int argc, char *argv[])
                     }
                     else if (permiss &&!failure_skip)
                     {
+                        
                         wait = true;
                         continue;
                     }
