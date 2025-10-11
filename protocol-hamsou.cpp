@@ -197,9 +197,49 @@ public:
             // This will set acks to 1 and stabilize
             stabilizerWithAck(id);
             std::cout << "stabilizerWithAck(failID) complete" << std::endl;
+
+
+
+            // NEW: Remove failed node's unstable operations from execution list
+            {
+                std::lock_guard<std::mutex> exec_lock(mtx);
+                int removed_count = 0;
+                
+                // Remove any remaining unstabilized operations from failed node
+                {
+                    std::lock_guard<std::mutex> exec_lock(mtx);
+                    int removed_count = 0;
+                    
+                    for (auto it = executionList.begin() + obj.stable_state.index; 
+                        it != executionList.end(); ) 
+                    {
+                        if (it->node_id == id) {
+                            std::cout << "Removing unstabilized operation from failed node " << id 
+                                    << ": " << it->type << " (call_id=" << it->call_id << ")" << std::endl;
+                            it = executionList.erase(it);
+                            obj.current_state.index--;
+                            removed_count++;
+                        } else {
+                            ++it;
+                        }
+                    }
+                    
+                    std::cout << "Removed " << removed_count 
+                            << " unstabilized operations from failed node " << id << std::endl;
+                }
+                
+            }
+
+
+
+
+
+
+
+
         }
     }
-    
+
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
         // std::cout << "deserializing calls" << std::endl;
