@@ -388,11 +388,19 @@ int main(int argc, char *argv[])
                     std::cout << "Processing queued failure for node " << failed_id << std::endl;
                     hdl->setfailurenode(failed_id);
                     
-                    // Clear wait flag to allow retry
-                    if (wait) {
-                        std::cout << "Clearing wait flag for retry after failure" << std::endl;
-                        wait = false;
+                    // If waiting, SKIP the blocked operation instead of retrying
+                    if (wait && it != calls.end()) {
+                        std::cout << "SKIPPING blocked operation " << it->type 
+                                << " after node " << failed_id << " failure" << std::endl;
+                        ++it;  // Move to next operation
+                        
+                        early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            std::chrono::high_resolution_clock::now().time_since_epoch())
+                            .count() - early_start_time;
                     }
+                    
+                    wait = false;
+
                 }
             }
 
