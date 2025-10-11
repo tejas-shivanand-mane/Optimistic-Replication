@@ -200,7 +200,7 @@ public:
 
 
             stabilizerWithAck(id);
-            std::cout << "stabilizerWithAck complete" << std::endl;
+            std::cout << "stabilizerWithAck(failID) complete" << std::endl;
 
             
             while (!priorityQueue.empty()) {
@@ -546,7 +546,7 @@ public:
 
         // NEW: If a failID is provided (not 0), mark all its acks as received
         if (failID > 0 && failID <= number_of_nodes) {
-            std::cout << "Setting all acks for failed node " << failID << " to 1" << std::endl;
+            std::cout << "stabilizerWithAck(int failID): Setting all acks for failed node " << failID << " to 1" << std::endl;
             
             // Set all acks for this failed node to 1 (indicating we've "received" them)
             for (int j = 0; j < acks[failID - 1].size(); j++) {
@@ -590,7 +590,7 @@ public:
 
                 static uint64_t last_print_time = 0;
                 if (current_loop_time - last_print_time >= 1) {
-                    std::cout<< "Running stabilizerWithAck loop(): " << std::endl;
+                    std::cout<< "Running stabilizerWithAck(failid) loop(): " << std::endl;
                     last_print_time = current_loop_time;
                 }
 

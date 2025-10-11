@@ -119,23 +119,27 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
             }
             catch (Exception *e)
             {
+
                 std::cout << "[Broadcast] Failed to send to node " << it.first 
                          << ": " << e->getMessage() << std::endl;
                 
-                failed_during_broadcast.push_back(it.first);
-                delete e;
+                // failed_during_broadcast.push_back(it.first);
+                // delete e;
+
             }
         }
     }
-    // Queue all failures
-    if (!failed_during_broadcast.empty())
-    {
-        std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
-        for (int failed_id : failed_during_broadcast)
-        {
-            handler->pending_failures.push(failed_id);
-        }
-    }
+
+    // // Queue all failures
+    // if (!failed_during_broadcast.empty())
+    // {
+    //     std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
+    //     for (int failed_id : failed_during_broadcast)
+    //     {
+    //         handler->pending_failures.push(failed_id);
+    //     }
+    // }
+
 }
 
 void ServersCommunicationLayer::establishConnection(Socket *socket, int remoteId)
