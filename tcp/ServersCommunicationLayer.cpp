@@ -115,20 +115,11 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
             catch (Exception *e)
             {
 
+
+
                 cout << e->getMessage() << endl;
                 cout << "Unable to send messages to remote " << it.first << endl;
-                
-                // ADD FAILURE DETECTION HERE!
-                {
-                    std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
-                    handler->pending_failures.push(it.first);
-                }
-                
                 delete e;
-
-                // cout << e->getMessage() << endl;
-                // cout << "Unable to send messages to remote " << it.first << endl;
-                // delete e;
 
 
 
