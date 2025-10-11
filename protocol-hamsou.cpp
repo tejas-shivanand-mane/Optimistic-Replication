@@ -193,9 +193,30 @@ public:
         
         if (failed_nodes.count(id) == 0) {
             failed_nodes.insert(id);
+
+
+            int old_quorum = quorum.fetch_sub(1);
+            std::cout << "Quorum adjusted: " << old_quorum << " -> " << (old_quorum - 1) << std::endl;
+
+
+            // Give all EXISTING operations a fake ack from the failed node
+            {
+                std::lock_guard<std::mutex> ack_lock(mtx);
+                std::cout << "Adding fake acks from node " << id << " to all operations" << std::endl;
+                
+                for (int node = 0; node < number_of_nodes; node++) {
+                    for (int call_id = 0; call_id < acks[node].size(); call_id++) {
+                        if (acks[node][call_id] > 0 && acks[node][call_id] < old_quorum) {
+                            // This operation exists and might benefit from an extra ack
+                            acks[node][call_id]++;
+                        }
+                    }
+                }
+            }
+    
             
             // This will set acks to 1, stabilize, AND remove unstabilized operations
-            stabilizerWithAck(id);
+            stabilizerWithAck(0);
             std::cout << "stabilizerWithAck(failID) complete" << std::endl;
         }
     }
