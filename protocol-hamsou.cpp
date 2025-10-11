@@ -10,9 +10,9 @@
 
 // #define FAILURE_MODE
 
-#define PROJECT
+// #define PROJECT
 // #define STACK
-// #define SET
+#define SET
 // #define MOVIE
 // #define COURSEWARE
 
