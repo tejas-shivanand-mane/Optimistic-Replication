@@ -194,49 +194,9 @@ public:
         if (failed_nodes.count(id) == 0) {
             failed_nodes.insert(id);
             
-            // This will set acks to 1 and stabilize
+            // This will set acks to 1, stabilize, AND remove unstabilized operations
             stabilizerWithAck(id);
             std::cout << "stabilizerWithAck(failID) complete" << std::endl;
-
-
-
-            // NEW: Remove failed node's unstable operations from execution list
-            {
-                std::lock_guard<std::mutex> exec_lock(mtx);
-                int removed_count = 0;
-                
-                // Remove any remaining unstabilized operations from failed node
-                {
-                    std::lock_guard<std::mutex> exec_lock(mtx);
-                    int removed_count = 0;
-                    
-                    for (auto it = executionList.begin() + obj.stable_state.index; 
-                        it != executionList.end(); ) 
-                    {
-                        if (it->node_id == id) {
-                            std::cout << "Removing unstabilized operation from failed node " << id 
-                                    << ": " << it->type << " (call_id=" << it->call_id << ")" << std::endl;
-                            it = executionList.erase(it);
-                            obj.current_state.index--;
-                            removed_count++;
-                        } else {
-                            ++it;
-                        }
-                    }
-                    
-                    std::cout << "Removed " << removed_count 
-                            << " unstabilized operations from failed node " << id << std::endl;
-                }
-                
-            }
-
-
-
-
-
-
-
-
         }
     }
 
@@ -562,15 +522,16 @@ public:
 
     }
 
+
     void stabilizerWithAck(int failID)
     {
         bool can_unqued = false;
         
-        // NEW: If a failID is provided (not 0), mark all its acks as received
+        // Set acks to 1 for failed node
         if (failID > 0 && failID <= number_of_nodes) {
-            std::cout << "stabilizerWithAck(int failID): Setting all acks for failed node " << failID << " to 1" << std::endl;
+            std::cout << "stabilizerWithAck(int failID): Setting all acks for failed node " 
+                    << failID << " to 1" << std::endl;
             
-            // Set all acks for this failed node to 1 (indicating we've "received" them)
             for (int j = 0; j < acks[failID - 1].size(); j++) {
                 if (acks[failID - 1][j] == 0) {
                     acks[failID - 1][j] = 1;
@@ -589,13 +550,11 @@ public:
             
             bool stable = true;
             
-
-            
             std::cout << "i, executionList.size(): " << i << ", " << executionList.size() << std::endl;
             
+            // Stabilize what we can
             while (stable && i < executionList.size())
             {
-                
                 stable = false;
                 
                 if (executionList[i].node_id == node_id)
@@ -617,7 +576,8 @@ public:
                 
                 if (stable)
                 {
-                    if (executionList[i].node_id == node_id && executionList[i].call_id == (expected_calls / number_of_nodes) - 1)
+                    if (executionList[i].node_id == node_id && 
+                        executionList[i].call_id == (expected_calls / number_of_nodes) - 1)
                         last_call_stable.store(true);
                         
                     std::cout << "Exe - stablized - type: " << executionList[i].type 
@@ -631,8 +591,36 @@ public:
                     obj.waittobestable.store(obj.waittobestable.load() + 1);
                 }
             }
-        }
+            
+            // NEW: Remove unstabilized operations from failed node (while we have the lock!)
+            if (failID > 0 && obj.stable_state.index < executionList.size())
+            {
+                std::cout << "Checking for unstabilized operations from failed node " << failID 
+                        << " (stable_index=" << obj.stable_state.index 
+                        << ", total=" << executionList.size() << ")" << std::endl;
+                
+                int removed_count = 0;
+                for (auto it = executionList.begin() + obj.stable_state.index; 
+                    it != executionList.end(); )
+                {
+                    if (it->node_id == failID) {
+                        std::cout << "Removing unstabilized operation from failed node " << failID 
+                                << ": " << it->type << " (call_id=" << it->call_id << ")" << std::endl;
+                        it = executionList.erase(it);
+                        obj.current_state.index--;
+                        removed_count++;
+                    } else {
+                        ++it;
+                    }
+                }
+                
+                std::cout << "Removed " << removed_count 
+                        << " unstabilized operations from failed node " << failID << std::endl;
+            }
+            
+        }  // Release lock here
         
+        // Process priority queue
         if (can_unqued)
         {
             while (!priorityQueue.empty())
