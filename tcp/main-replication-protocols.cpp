@@ -419,36 +419,36 @@ int main(int argc, char *argv[])
         }
 
 
-        if (hdl->failed_nodes.size() > last_failed_count) {
-            std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
+        // if (hdl->failed_nodes.size() > last_failed_count) {
+        //     std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
 
-            failure_skip = true;
+        //     failure_skip = true;
             
-            if (wait) {
-                wait = false;
-                last_failed_count = hdl->failed_nodes.size();
+        //     if (wait) {
+        //         wait = false;
+        //         last_failed_count = hdl->failed_nodes.size();
                 
-                // skipping the current operation that was causing the wait
-                if (it != calls.end()) {
+        //         // skipping the current operation that was causing the wait
+        //         if (it != calls.end()) {
 
-                    std::cout << "Skipping blocked operation " << it->type 
-                            << " after failure detection" << std::endl;
+        //             std::cout << "Skipping blocked operation " << it->type 
+        //                     << " after failure detection" << std::endl;
 
-                    ++it;  // Move to next operation
+        //             ++it;  // Move to next operation
                     
-                    // Update counters for skipped operation
+        //             // Update counters for skipped operation
 
-                    early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        std::chrono::high_resolution_clock::now().time_since_epoch())
-                        .count() - early_start_time;
-                }
+        //             early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        //                 std::chrono::high_resolution_clock::now().time_since_epoch())
+        //                 .count() - early_start_time;
+        //         }
                 
-                continue;  
-            } else {
-                wait = false;  
-                last_failed_count = hdl->failed_nodes.size();
-            }
-        }
+        //         continue;  
+        //     } else {
+        //         wait = false;  
+        //         last_failed_count = hdl->failed_nodes.size();
+        //     }
+        // }
 
 
 
