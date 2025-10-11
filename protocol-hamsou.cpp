@@ -284,7 +284,7 @@ public:
 
         if (obj.locallyPermissibility(call))
         {
-            // std::cout << "localHandler: locallyPermissibility loop" << std::endl;
+            std::cout << "localHandler: locallyPermissibility loop" << std::endl;
 
             flag = true;
             permiss = true;

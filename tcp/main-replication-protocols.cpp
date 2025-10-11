@@ -446,7 +446,7 @@ int main(int argc, char *argv[])
                     
 
                     hdl->localHandler(req, send_flag, permiss, stableindex);
-
+                    std::cout <<"send_flag is " << send_flag << std::endl;
 
                     if (send_flag)
                     {
