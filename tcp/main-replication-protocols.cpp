@@ -457,9 +457,12 @@ int main(int argc, char *argv[])
                         auto buff = std::make_unique<Buffer>();
                         buff->setContent(const_cast<char *>(message.c_str()), length);
                         
-                        // std::cout << "Broadcasting with send_flag=true" << std::endl;
+                        std::cout << "Broadcasting with send_flag=true" << std::endl;
 
                         sc->broadcast(buff.get());
+
+                        std::cout << "Done Broadcasting with send_flag=true" << std::endl;
+
                         sent++;
                         // preit = it;
                         ++it;
