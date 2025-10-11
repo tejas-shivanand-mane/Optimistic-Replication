@@ -239,7 +239,7 @@ void ServerConnection::receive()
 	{
 
 		{
-    
+			cout << "Server Connection Failing for " << this->remoteId << endl;
 			std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
 			handler->pending_failures.push(this->remoteId);
     

@@ -109,8 +109,11 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
         if (getConnection(it.first) != NULL)
             try
             {
+                cout << "sending to remote ID" << it.second->remoteId << endl;
                 if (it.first != id)
                     getConnection(it.first)->send(message);
+                    
+                cout << "sent to remote ID" << it.second->remoteId << endl;
             }
             catch (Exception *e)
             {
