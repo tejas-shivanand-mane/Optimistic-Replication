@@ -329,42 +329,87 @@ namespace amirmohsen
 			::close(sd);
 		}
 
+
 		void send(Buffer *buffer)
 		{
 			char *content = buffer->getContent();
 			int sentCount = 0;
 			int size = buffer->getSize();
+			
 			while (sentCount < size)
 			{
-				int val = ::send(sd, (void *)(content + sentCount), (size_t)(size - sentCount), 0);
-				if (val <= 0)
+				int val = ::send(sd, (void *)(content + sentCount), (size_t)(size - sentCount), MSG_DONTWAIT);
+				
+				if (val > 0)
+				{
+					sentCount += val;
+				}
+				else
 				{
 					delete[] content;
-					return; // Ignore silently
+					throw new SocketClosedException(" @ TCPSocket.send(): Send failed or would block!");
 				}
-				sentCount += val;
 			}
-
+			
 			delete[] content;
 		}
 
 		void send(string message)
 		{
-			// std::cout << "send" << std::endl;
 			int sentCount = 0;
 			int size = message.length() + 1;
-			// std::cout << "size: " << size << std::endl;
+			
 			while (sentCount < size)
 			{
-				int val = ::send(sd, (void *)(message.c_str() + sentCount), size - sentCount, 0);
-				if (val <= 0)
+				int val = ::send(sd, (void *)(message.c_str() + sentCount), size - sentCount, MSG_DONTWAIT);
+				
+				if (val > 0)
 				{
-					// Ignore silently if socket is closed or error occurs
-					return;
+					sentCount += val;
 				}
-				sentCount += val;
+				else
+				{
+					throw new SocketClosedException(" @ TCPSocket.send(): Send failed or would block!");
+				}
 			}
 		}
+
+		// void send(Buffer *buffer)
+		// {
+		// 	char *content = buffer->getContent();
+		// 	int sentCount = 0;
+		// 	int size = buffer->getSize();
+		// 	while (sentCount < size)
+		// 	{
+		// 		int val = ::send(sd, (void *)(content + sentCount), (size_t)(size - sentCount), 0);
+		// 		if (val <= 0)
+		// 		{
+		// 			delete[] content;
+		// 			return; // Ignore silently
+		// 		}
+		// 		sentCount += val;
+		// 	}
+
+		// 	delete[] content;
+		// }
+
+		// void send(string message)
+		// {
+		// 	// std::cout << "send" << std::endl;
+		// 	int sentCount = 0;
+		// 	int size = message.length() + 1;
+		// 	// std::cout << "size: " << size << std::endl;
+		// 	while (sentCount < size)
+		// 	{
+		// 		int val = ::send(sd, (void *)(message.c_str() + sentCount), size - sentCount, 0);
+		// 		if (val <= 0)
+		// 		{
+		// 			// Ignore silently if socket is closed or error occurs
+		// 			return;
+		// 		}
+		// 		sentCount += val;
+		// 	}
+		// }
 
 		Buffer *receive(int size) // throw (SocketClosedException*, ReceiveException*)
 		{

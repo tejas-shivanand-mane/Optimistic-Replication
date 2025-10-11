@@ -104,33 +104,37 @@ void ServersCommunicationLayer::broadcast(string &message)
 
 void ServersCommunicationLayer::broadcast(Buffer *message)
 {
+    std::vector<int> failed_during_broadcast;
+    
     for (auto it : connections)
     {
         if (getConnection(it.first) != NULL)
+        {
             try
             {
-                cout << "sending to remote ID" << it.second->remoteId << endl;
-                if (it.first != id)
+                if (it.first != id && !handler->failed[it.first - 1])
+                {
                     getConnection(it.first)->send(message);
-                    
-                cout << "sent to remote ID" << it.second->remoteId << endl;
+                }
             }
             catch (Exception *e)
             {
-
-
-
-                cout << e->getMessage() << endl;
-                cout << "Unable to send messages to remote " << it.first << endl;
+                std::cout << "[Broadcast] Failed to send to node " << it.first 
+                         << ": " << e->getMessage() << std::endl;
+                
+                failed_during_broadcast.push_back(it.first);
                 delete e;
-
-
-
             }
-
-
-
-
+        }
+    }
+    // Queue all failures
+    if (!failed_during_broadcast.empty())
+    {
+        std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
+        for (int failed_id : failed_during_broadcast)
+        {
+            handler->pending_failures.push(failed_id);
+        }
     }
 }
 
