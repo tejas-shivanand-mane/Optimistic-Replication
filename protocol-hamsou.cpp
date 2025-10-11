@@ -536,21 +536,13 @@ public:
         }
 
     }
+
     void stabilizerWithAck()
     {
 
 
         bool can_unqued = false;
-        // int quorum = number_of_nodes - 1;
-// #ifdef FAILURE_MODE
-//         int num_failed = 0;
-//         for (int i = 0; i < number_of_nodes; ++i)
-//             if (failed[i])
-//                 num_failed++;
-
-
-//         quorum -= num_failed;
-// #endif
+        
         {
             std::lock_guard<std::mutex> lock(mtx);
             int i = obj.stable_state.index;
@@ -569,7 +561,7 @@ public:
                                     .count();
 
             uint64_t current_loop_time;
-
+            std::cout << "i, executionList.size(): " << i << ", " << executionList.size() << std::endl;
             while (stable && i < executionList.size())
             {
 
