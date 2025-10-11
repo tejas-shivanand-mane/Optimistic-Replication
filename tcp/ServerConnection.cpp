@@ -205,6 +205,13 @@ void ServerConnection::receive()
 					// activate_timeout = true;
 				}
 			}
+			else if (strcmp(buff->getContent(), "shutdown") == 0)
+			{
+
+				throw Exception("A remote node shutting down");
+
+
+			}
 			else
 			{
 				Call call;

@@ -44,6 +44,19 @@ void shutdownHandler(int signum) {
     std::cout << "[SHUTDOWN HOOK] Closing all socket connections..." << std::endl;
     
     shutdown_requested.store(true);
+
+
+
+    std::string init = "shutdown";
+    std::vector<uint8_t> idVector(init.begin(), init.end());
+    idVector.push_back('\0'); 
+    uint8_t *id_bytes = &idVector[0];
+    uint64_t id_len = idVector.size();
+    Buffer *initbuff = new Buffer();
+    std::string initMsg(id_bytes, id_bytes + id_len);
+    initbuff->setContent(const_cast<char *>(initMsg.c_str()), id_len);
+
+    global_sc->broadcast(initbuff);
     
     // Close all sockets immediately - this triggers exceptions on other nodes
     if (global_sc != nullptr) {
