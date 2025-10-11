@@ -494,7 +494,8 @@ int main(int argc, char *argv[])
 
 
                     }
-                    else if (permiss &&!failure_skip)
+                    // else if (permiss &&!failure_skip)
+                    else if (permiss)
                     {
                         
                         wait = true;
