@@ -249,6 +249,8 @@ int main(int argc, char *argv[])
 
     int last_failed_count = hdl->failed_nodes.size();
 
+    bool failure_skip = false;
+
     while (!shutdown_requested.load() &&hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
@@ -397,6 +399,8 @@ int main(int argc, char *argv[])
 
         if (hdl->failed_nodes.size() > last_failed_count) {
             std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
+
+            failure_skip = true;
             
             if (wait) {
                 wait = false;
@@ -490,13 +494,18 @@ int main(int argc, char *argv[])
 
 
                     }
-                    else if (permiss)
+                    else if (permiss &&!failure_skip)
                     {
                         wait = true;
                         continue;
                     }
                     else
                     {
+
+                        if (failure_skip)
+                        {
+                            failure_skip = false;
+                        }
                         // preit = it;
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
