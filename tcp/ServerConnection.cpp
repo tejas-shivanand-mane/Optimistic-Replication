@@ -208,7 +208,7 @@ void ServerConnection::receive()
 			else if (strcmp(buff->getContent(), "shutdown") == 0)
 			{
 
-				cout << "Server Connection Failing for " << this->remoteId << endl;
+				cout << "shutdown received: Server Connection Failing for " << this->remoteId << endl;
 				std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
 				handler->pending_failures.push(this->remoteId);
 

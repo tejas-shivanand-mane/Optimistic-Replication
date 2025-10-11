@@ -57,7 +57,7 @@ void shutdownHandler(int signum) {
     initbuff->setContent(const_cast<char *>(initMsg.c_str()), id_len);
 
     global_sc->broadcast(initbuff);
-
+    std::cout << "[SHUTDOWN HOOK] Sent Shutdown Message:" << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(200));  // give time to flush
     delete initbuff;
     
