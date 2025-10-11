@@ -273,18 +273,18 @@ public:
     }
     void localHandler(Call &call, bool &flag, bool &permiss, int &stableindex)
     {
-        // std::cout << "localHandler: start" << std::endl;
+        std::cout << "localHandler: start" << std::endl;
 
         std::lock_guard<std::mutex> lock(mtx);
         stableindex = obj.stable_state.index;
         flag = false;
         permiss = false;
 
-        // std::cout << "localHandler: after lock" << std::endl;
+        std::cout << "localHandler: after lock" << std::endl;
 
         if (obj.locallyPermissibility(call))
         {
-            // std::cout << "localHandler: locallyPermissibility loop" << std::endl;
+            std::cout << "localHandler: locallyPermissibility loop" << std::endl;
 
             flag = true;
             permiss = true;
@@ -328,7 +328,7 @@ public:
             }
         }
 
-        // std::cout << "localHandler: end" << std::endl;
+        std::cout << "localHandler: end" << std::endl;
 
     }
 
@@ -370,7 +370,7 @@ public:
                     if (addorRemove)
                     {
                         priorityQueue.push(remoteCall);
-                        // std::cout << "Exe - queued2 - type: " << remoteCall.type << " and value1: " << remoteCall.value1 << std::endl;
+                        std::cout << "Exe - queued2 - type: " << remoteCall.type << " and value1: " << remoteCall.value1 << std::endl;
                     }
                     return true;
                 }
@@ -384,7 +384,7 @@ public:
     {
 #ifndef CRDT
         bool add_queue_flag = false;
-        // std::cout << "Exe - by remote1 - type: " << call.type << " and value1: " << call.value1 << " Vector-Clocks: " << vector_clock[0] << "-" << vector_clock[1] << "-" << vector_clock[2] << vector_clock[3]<< " -call id -" << call.call_id << " -current index " << obj.current_state.index << " size " << executionList.size() << "bool "<<add_queue_flag<< "node id"<< call.node_id<< std::endl;
+        std::cout << "Exe - by remote1 - type: " << call.type << " and value1: " << call.value1 << " Vector-Clocks: " << vector_clock[0] << "-" << vector_clock[1] << "-" << vector_clock[2] << vector_clock[3]<< " -call id -" << call.call_id << " -current index " << obj.current_state.index << " size " << executionList.size() << "bool "<<add_queue_flag<< "node id"<< call.node_id<< std::endl;
         add_queue_flag = queueHandler(addorRemove, call);
         // cout<< "check1"<<std::endl;
         if (!add_queue_flag)
@@ -492,7 +492,7 @@ public:
     {
         int current_quorum = quorum.load();
 
-        // cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
+        cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
 
 
         // acks[call.node_id - 1][call.call_id]++;
