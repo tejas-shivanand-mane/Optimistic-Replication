@@ -12,8 +12,8 @@
 
 // #define PROJECT
 // #define STACK
-#define SET
-// #define MOVIE
+// #define SET
+#define MOVIE
 // #define COURSEWARE
 
 
