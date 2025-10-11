@@ -162,18 +162,20 @@ void ServerConnection::reconnect(Socket *newSocket)
 
 void ServerConnection::receive()
 {
-// #ifdef FAILURE_MODE
-// 	static std::chrono::steady_clock::time_point last_print_time = std::chrono::steady_clock::now();
-// 	auto now = std::chrono::steady_clock::now();
-// 	if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() >= 1)
-// 	{
-// 		std::cout << "[HB] Connection active to node " << this->remoteId << std::endl;
-// 		last_print_time = now;
-// 	}
-// #endif
+
+
+
+
 
 	if (socket == nullptr)
 		return;
+
+
+    if (handler->failed[this->remoteId - 1]) {
+        return;  // Skip processing
+    }
+
+
 
 	try
 	{

@@ -367,6 +367,15 @@ public:
 
     bool remoteHandler(bool addorRemove, Call call)
     {
+
+        if (failed[call.node_id - 1]) {
+            std::cout << "Rejecting operation from failed node " << call.node_id 
+                    << ": " << call.type << " (call_id=" << call.call_id << ")" << std::endl;
+            return false;  // Don't add to execution list
+        }
+
+
+
 #ifndef CRDT
         bool add_queue_flag = false;
         std::cout << "Exe - by remote1 - type: " << call.type << " and value1: " << call.value1 << " Vector-Clocks: " << vector_clock[0] << "-" << vector_clock[1] << "-" << vector_clock[2] << vector_clock[3]<< " -call id -" << call.call_id << " -current index " << obj.current_state.index << " size " << executionList.size() << "bool "<<add_queue_flag<< "node id"<< call.node_id<< std::endl;
@@ -476,6 +485,15 @@ public:
     void updateAcksTable(Call call)
     {
         int current_quorum = quorum.load();
+
+
+
+        // NEW: Don't process acks from failed nodes
+        if (failed[call.node_id - 1]) {
+            std::cout << "Ignoring ack from failed node " << call.node_id 
+                    << " (call_id=" << call.call_id << ")" << std::endl;
+            return;
+        }
 
         cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
 
