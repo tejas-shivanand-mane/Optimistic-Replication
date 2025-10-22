@@ -174,6 +174,8 @@ int main(int argc, char *argv[])
     std::string line;
     int expected_calls = 0;
     hdl->obj.readBenchFile((loc + std::to_string(id) + ".txt").c_str(), expected_calls, id, numnodes, call, calls); // new added
+    std::cout << "expected_calls read: " << expected_calls << endl;
+
     hdl->setVars(id, numnodes, expected_calls, writep);
     /*
     std::ifstream myfile;
