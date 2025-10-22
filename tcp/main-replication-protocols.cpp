@@ -26,7 +26,7 @@ std::atomic<int> *initcounter;
 ServersCommunicationLayer* global_sc = nullptr;
 Handler* global_hdl = nullptr;
 std::atomic<bool> shutdown_requested{false};
-
+std::mutex cout_mutex;
 
 
 
@@ -529,8 +529,10 @@ int main(int argc, char *argv[])
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
 
+                        std::ostringstream oss;
+                        oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
+                        std::cout << oss.str();
 
 
                     }
@@ -558,8 +560,9 @@ int main(int argc, char *argv[])
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
-
+                        std::ostringstream oss;
+                        oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
+                        std::cout << oss.str();
 
                     }
                 }
@@ -608,8 +611,9 @@ int main(int argc, char *argv[])
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
-
+                        std::ostringstream oss;
+                        oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
+                        std::cout << oss.str();
             }
             /*if(it==calls.end())
                 early_response_time_totall += std::chrono::duration_cast<std::chrono::microseconds>(
