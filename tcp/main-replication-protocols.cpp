@@ -22,6 +22,7 @@ std::atomic<int> *initcounter;
 #include <csignal>
 
 // Global pointers for signal handler
+
 ServersCommunicationLayer* global_sc = nullptr;
 Handler* global_hdl = nullptr;
 std::atomic<bool> shutdown_requested{false};
@@ -31,6 +32,7 @@ std::atomic<bool> shutdown_requested{false};
 
 void shutdownHandler(int signum) {
     std::cout << "\n========================================" << std::endl;
+    
     std::cout << "[SHUTDOWN HOOK] Caught signal " << signum << std::endl;
     
     if (signum == SIGTERM) {
@@ -42,6 +44,22 @@ void shutdownHandler(int signum) {
     std::cout << "[SHUTDOWN HOOK] Closing all socket connections..." << std::endl;
     
     shutdown_requested.store(true);
+
+
+
+    std::string init = "shutdown";
+    std::vector<uint8_t> idVector(init.begin(), init.end());
+    idVector.push_back('\0'); 
+    uint8_t *id_bytes = &idVector[0];
+    uint64_t id_len = idVector.size();
+    Buffer *initbuff = new Buffer();
+    std::string initMsg(id_bytes, id_bytes + id_len);
+    initbuff->setContent(const_cast<char *>(initMsg.c_str()), id_len);
+
+    global_sc->broadcast(initbuff);
+    std::cout << "[SHUTDOWN HOOK] Sent Shutdown Message:" << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));  // give time to flush
+    delete initbuff;
     
     // Close all sockets immediately - this triggers exceptions on other nodes
     if (global_sc != nullptr) {
@@ -238,12 +256,15 @@ int main(int argc, char *argv[])
                                .count();
     
     uint64_t current_loop_time;
+    uint64_t diff_time;
+
 // #ifdef FAILURE_MODE
 //     expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
 // #endif
 
 
     int last_failed_count = hdl->failed_nodes.size();
+
 
     while (!shutdown_requested.load() &&hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
@@ -295,10 +316,10 @@ int main(int argc, char *argv[])
 
         {
 
-            if (current_loop_time - main_loop_start %1==0)
-            {
-                std::cout << "In main loop: ack_index < std::atomic_load(&hdl->obj.send_ack_call_list)->size()" << std::endl;
-            }             
+            // if (current_loop_time - main_loop_start %1==0)
+            // {
+            //     std::cout << "In main loop: ack_index < std::atomic_load(&hdl->obj.send_ack_call_list)->size()" << std::endl;
+            // }             
 
             auto ack_list_snapshot = std::atomic_load(&hdl->obj.send_ack_call_list);
             auto length = hdl->serializeCalls((*ack_list_snapshot)[ack_index], payload);
@@ -352,14 +373,51 @@ int main(int argc, char *argv[])
             }
 
             Call &req = *it;
+
+
+            {
+                std::lock_guard<std::mutex> lock(hdl->failure_queue_mutex);
+                while (!hdl->pending_failures.empty()) {
+                    int failed_id = hdl->pending_failures.front();
+                    hdl->pending_failures.pop();
+
+                    if (hdl->failed_nodes.count(failed_id) > 0) {
+                        continue;
+                    }
+                    
+                    std::cout << "Processing queued failure for node " << failed_id << std::endl;
+                    hdl->setfailurenode(failed_id);
+                    
+                    // If waiting, SKIP the blocked operation instead of retrying
+                    if (wait && it != calls.end()) {
+                        std::cout << "SKIPPING blocked operation " << it->type 
+                                << " after node " << failed_id << " failure" << std::endl;
+                        ++it;  // Move to next operation
+                        
+                        early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            std::chrono::high_resolution_clock::now().time_since_epoch())
+                            .count() - early_start_time;
+                    }
+                    
+                    wait = false;
+
+                }
+            }
+
+
+
+
+
+
 #ifndef CRDT
             if (wait)
             {
 
-                if (current_loop_time - main_loop_start %1==0)
-                {
-                    std::cout << "In main loop: if (wait)" << std::endl;
-                }            
+                // if (current_loop_time - main_loop_start %1==0)
+                // {
+                //     std::cout << "In main loop: if (wait)" << std::endl;
+                // }            
+
                 if (onetimeprint)
                 {
                     // std::cout << "wait for stable index: " << hdl->obj.waittobestable.load() << std::endl;
@@ -377,45 +435,37 @@ int main(int argc, char *argv[])
 #endif
 
 
-        {
-            std::lock_guard<std::mutex> lock(hdl->failure_queue_mutex);
-            while (!hdl->pending_failures.empty()) {
-                int failed_id = hdl->pending_failures.front();
-                hdl->pending_failures.pop();
-                
-                std::cout << "Processing queued failure for node " << failed_id << std::endl;
-                hdl->setfailurenode(failed_id);  // Now safe - no deadlock risk
-            }
-        }
 
 
-        // In your main loop, modify the failure handling:
-        if (hdl->failed_nodes.size() > last_failed_count) {
-            std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
+        // if (hdl->failed_nodes.size() > last_failed_count) {
+        //     std::cout << "Handling wait due to failure, wait was: " << wait << std::endl;
+
             
-            if (wait) {
-                // We were waiting on an operation that's now invalid due to failure
-                wait = false;
-                last_failed_count = hdl->failed_nodes.size();
+        //     if (wait) {
+        //         wait = false;
+        //         last_failed_count = hdl->failed_nodes.size();
                 
-                // CRITICAL: Skip the current operation that was causing the wait
-                if (it != calls.end()) {
-                    std::cout << "Skipping blocked operation " << it->type 
-                            << " after failure detection" << std::endl;
-                    ++it;  // Move to next operation
+        //         // skipping the current operation that was causing the wait
+        //         if (it != calls.end()) {
+
+        //             std::cout << "Skipping blocked operation " << it->type 
+        //                     << " after failure detection" << std::endl;
+
+        //             ++it;  // Move to next operation
                     
-                    // Update counters for skipped operation
-                    early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        std::chrono::high_resolution_clock::now().time_since_epoch())
-                        .count() - early_start_time;
-                }
+        //             // Update counters for skipped operation
+
+        //             early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        //                 std::chrono::high_resolution_clock::now().time_since_epoch())
+        //                 .count() - early_start_time;
+        //         }
                 
-                continue;  // Go to next loop iteration with next operation
-            } else {
-                wait = false;  // Just in case
-                last_failed_count = hdl->failed_nodes.size();
-            }
-        }
+        //         continue;  
+        //     } else {
+        //         wait = false;  
+        //         last_failed_count = hdl->failed_nodes.size();
+        //     }
+        // }
 
 
 
@@ -424,22 +474,21 @@ int main(int argc, char *argv[])
 #if defined(OPTIMISTIC_REPLICATION)
 
 
-                if (current_loop_time - main_loop_start %1==0)
-                {
-                    std::cout << "In main loop: #if defined(OPTIMISTIC_REPLICATION)" << std::endl;
-                }          
+                // if (current_loop_time - main_loop_start %1==0)
+                // {
+                //     std::cout << "In main loop: #if defined(OPTIMISTIC_REPLICATION)" << std::endl;
+                // }          
 
 
                 if (!wait)
                 {
-                    if (current_loop_time - main_loop_start %1==0)
-                    {
-                        std::cout << "In main loop: if (!wait)" << std::endl;
-                    }  
+                    // if (current_loop_time - main_loop_start %1==0)
+                    // {
+                    //     std::cout << "In main loop: if (!wait)" << std::endl;
+                    // }  
                     
-                    std::cout << "Going into localHandler" << std::endl;
+
                     hdl->localHandler(req, send_flag, permiss, stableindex);
-                    std::cout << "Out of localHandler, send_flag, permiss: " << send_flag << ", " << permiss <<std::endl;
 
                     if (send_flag)
                     {
@@ -451,32 +500,48 @@ int main(int argc, char *argv[])
                         buff->setContent(const_cast<char *>(message.c_str()), length);
                         
                         std::cout << "Broadcasting with send_flag=true" << std::endl;
+
                         sc->broadcast(buff.get());
+
+                        std::cout << "Done Broadcasting with send_flag=true" << std::endl;
+
                         sent++;
                         // preit = it;
                         ++it;
+
+
+
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
+
+                                
                         delay = 10;
                         wait = false;
 
+                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() -
+                                                      early_start_time;
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
 
 
 
                     }
                     else if (permiss)
                     {
+                        
                         wait = true;
                         continue;
                     }
                     else
                     {
+
+
                         // preit = it;
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -484,10 +549,14 @@ int main(int argc, char *argv[])
                                                           .count() -
                                                       early_start_time;
 
+                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() -
+                                                      early_start_time;
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
 
 
                     }
@@ -518,10 +587,10 @@ int main(int argc, char *argv[])
             else
             {
 
-                if (current_loop_time - main_loop_start %1==0)
-                {
-                    std::cout << "In main loop: else" << std::endl;
-                }         
+                // if (current_loop_time - main_loop_start %1==0)
+                // {
+                //     std::cout << "In main loop: else" << std::endl;
+                // }         
 
                 // preit = it;
                 ++it;
@@ -530,10 +599,14 @@ int main(int argc, char *argv[])
                                                   .count() -
                                               early_start_time;
 
+                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
+                                                          .count() -
+                                                      early_start_time;
                         auto ct = std::chrono::duration_cast<std::chrono::seconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
-                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << std::endl;
+                        std::cout << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
 
             }
             /*if(it==calls.end())
@@ -546,10 +619,10 @@ int main(int argc, char *argv[])
         if (hdl->last_call_stable.load())
         {
 
-            if (current_loop_time - main_loop_start %1==0)
-            {
-                std::cout << "In main loop: hdl->last_call_stable.load()" << std::endl;
-            }         
+            // if (current_loop_time - main_loop_start %1==0)
+            // {
+            //     std::cout << "In main loop: hdl->last_call_stable.load()" << std::endl;
+            // }         
 
 
 

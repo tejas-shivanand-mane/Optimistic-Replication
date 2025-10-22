@@ -144,6 +144,7 @@ void ServerConnection::closeSocket()
 void ServerConnection::reconnect(Socket *newSocket)
 {
 	std::cout << "reconnecting " << "id: " << id << " remoteId: " << remoteId << std::endl;
+	
 	if (socket == NULL)
 	{
 		if (isToConnect())
@@ -161,18 +162,20 @@ void ServerConnection::reconnect(Socket *newSocket)
 
 void ServerConnection::receive()
 {
-// #ifdef FAILURE_MODE
-// 	static std::chrono::steady_clock::time_point last_print_time = std::chrono::steady_clock::now();
-// 	auto now = std::chrono::steady_clock::now();
-// 	if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() >= 1)
-// 	{
-// 		std::cout << "[HB] Connection active to node " << this->remoteId << std::endl;
-// 		last_print_time = now;
-// 	}
-// #endif
+
+
+
+
 
 	if (socket == nullptr)
 		return;
+
+
+    if (handler->failed[this->remoteId - 1]) {
+        return;  // Skip processing
+    }
+
+
 
 	try
 	{
@@ -190,16 +193,28 @@ void ServerConnection::receive()
 			Buffer *buff = socket->receive(length);
 			if (buff == nullptr)
 				break;
-			cout << "checkkk222" << "this remote " << this->remoteId << endl;
+
+			// cout << "checkkk222" << "this remote " << this->remoteId << endl;
+
 			if (strcmp(buff->getContent(), "init") == 0)
 			{
-				std::cout << "in receive: " << buff->getContent() << std::endl;
+				// std::cout << "in receive: " << buff->getContent() << std::endl;
+
 				initcounter->fetch_add(1);
 				if (initcounter->load() == handler->number_of_nodes - 1)
 				{
 					cout << "All nodes initialized, starting the protocol..." << endl;
 					// activate_timeout = true;
 				}
+			}
+			else if (strcmp(buff->getContent(), "shutdown") == 0)
+			{
+
+				cout << "shutdown received: Server Connection Failing for " << this->remoteId << endl;
+				std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
+				handler->pending_failures.push(this->remoteId);
+
+
 			}
 			else
 			{
@@ -234,15 +249,13 @@ void ServerConnection::receive()
 	catch (Exception *e)
 	{
 
-		{
-    
-			std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
-			handler->pending_failures.push(this->remoteId);
-    
+		// {
+		// 	cout << "Server Connection Failing for " << this->remoteId << endl;
+		// 	std::lock_guard<std::mutex> lock(handler->failure_queue_mutex);
+		// 	handler->pending_failures.push(this->remoteId);
+		// }
 
-		}
-
-		throw;
+		// throw;
 
 
 // #ifdef FAILURE_MODE
