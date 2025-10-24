@@ -508,7 +508,7 @@ public:
         int current_quorum = quorum.load();
 
 
-        cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
+        // cout<< "DEBUG updateAcksTable acks.size(), call.call_id: " << acks.size() << ", " << call.call_id <<  endl;
 
 
         // acks[call.node_id - 1][call.call_id]++;
