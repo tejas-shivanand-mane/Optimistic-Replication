@@ -641,8 +641,13 @@ int main(int argc, char *argv[])
 
         if (hdl->obj.waittobestable.load() == (expected_calls))
         {
-            
+            std::cout<< "hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
+
             break;
+        }
+        else
+        {
+            std::cout<< "hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
         }
     }
 

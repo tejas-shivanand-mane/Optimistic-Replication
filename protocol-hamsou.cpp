@@ -576,7 +576,6 @@ public:
 
 
 
-            std::cout << "i, executionList.size(): " << i << ", " << executionList.size() << std::endl;
             while (stable && i < executionList.size())
             {
 
@@ -625,6 +624,9 @@ public:
                 }
             }
         }
+
+        std::cout << "executionList.size(): " << executionList.size() << std::endl;
+
     }
 
     int findCallIndex(const std::string &type, const std::vector<Call> &calls)
