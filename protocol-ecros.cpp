@@ -3,16 +3,11 @@
 
 //#include "../wellcoordination/benchmark/ecros-project.hpp"
 
-
+#include "../tcp/config.hpp"
 
 // ---------------------------------------------------------------------------
 // Handler: owns the generic ECRO protocol state & algorithms
 // ---------------------------------------------------------------------------
-//#define STACK
-//#define SET
-//#define PROJECT
-//#define MOVIE
-#define COURSEWARE
 
 #ifdef STACK
     #include "../wellcoordination/benchmark/ecros-stack.hpp";

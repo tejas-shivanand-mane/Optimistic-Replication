@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "ServersCommunicationLayer.cpp"
+#include "config.hpp"
 // #include "ServerConnection.cpp"
 
 // #include "../wellcoordination/benchmark/project.hpp"
@@ -18,82 +19,8 @@ using namespace amirmohsen;
 
 std::atomic<int> *initcounter;
 
-
-#include <csignal>
-
-// Global pointers for signal handler
-
-ServersCommunicationLayer* global_sc = nullptr;
-Handler* global_hdl = nullptr;
-std::atomic<bool> shutdown_requested{false};
-std::mutex cout_mutex;
-
-
-
-void shutdownHandler(int signum) {
-    std::cout << "\n========================================" << std::endl;
-    
-    std::cout << "[SHUTDOWN HOOK] Caught signal " << signum << std::endl;
-    
-    if (signum == SIGTERM) {
-        std::cout << "[SHUTDOWN HOOK] This is from 'sudo killall'" << std::endl;
-    } else if (signum == SIGINT) {
-        std::cout << "[SHUTDOWN HOOK] This is from Ctrl+C" << std::endl;
-    }
-    
-    std::cout << "[SHUTDOWN HOOK] Closing all socket connections..." << std::endl;
-    
-    shutdown_requested.store(true);
-
-
-
-    std::string init = "shutdown";
-    std::vector<uint8_t> idVector(init.begin(), init.end());
-    idVector.push_back('\0'); 
-    uint8_t *id_bytes = &idVector[0];
-    uint64_t id_len = idVector.size();
-    Buffer *initbuff = new Buffer();
-    std::string initMsg(id_bytes, id_bytes + id_len);
-    initbuff->setContent(const_cast<char *>(initMsg.c_str()), id_len);
-
-    global_sc->broadcast(initbuff);
-    std::cout << "[SHUTDOWN HOOK] Sent Shutdown Message:" << std::endl;
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));  // give time to flush
-    delete initbuff;
-    
-    // Close all sockets immediately - this triggers exceptions on other nodes
-    if (global_sc != nullptr) {
-        global_sc->closeAllSockets();
-    }
-    
-    // Show final stats
-    if (global_hdl != nullptr) {
-        std::cout << "[SHUTDOWN HOOK] Final stats:" << std::endl;
-        std::cout << "  Stabilized ops: " << global_hdl->obj.waittobestable.load() << std::endl;
-        std::cout << "  Failed nodes: " << global_hdl->failed_nodes.size() << std::endl;
-    }
-    
-    std::cout << "[SHUTDOWN HOOK] Exiting..." << std::endl;
-    std::cout << "========================================\n" << std::endl;
-    
-    // Give a brief moment for messages to flush
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
-    exit(signum);
-}
-
-
-
 int main(int argc, char *argv[])
 {
-
-
-
-
-    signal(SIGTERM, shutdownHandler);  // sudo killall
-    signal(SIGINT, shutdownHandler);   // Ctrl+C
-    signal(SIGHUP, shutdownHandler);   // Terminal closed
-
 
     // std::cout << "checkkk111" << std::endl;
     std::vector<string> hosts;
@@ -139,23 +66,10 @@ int main(int argc, char *argv[])
     loc += "/" + usecase + "/";
     //////////////////////////////////////
     Handler *hdl = new Handler(); // Ensure this is properly initialized
-    global_hdl = hdl;
-
-    std::cout << "Starting Handler"<< std::endl;
-
-
-    if (usecase == "project")
-    {
-        // object = new Project();
-    }
     // object->setID(id)->setNumProcess(numnodes)->finalize();
     //  start connections
     int syn_counter = 0;
     ServersCommunicationLayer *sc = new ServersCommunicationLayer(id, hosts, ports, hdl, initcounter);
-    global_sc = sc;
-
-
-    std::cout << "Starting ServersCommunicationLayer"<< std::endl;
     sc->start();
     // wait for all to connect
     /*if(numnodes<=4)
@@ -174,8 +88,6 @@ int main(int argc, char *argv[])
     std::string line;
     int expected_calls = 0;
     hdl->obj.readBenchFile((loc + std::to_string(id) + ".txt").c_str(), expected_calls, id, numnodes, call, calls); // new added
-    std::cout << "expected_calls read: " << expected_calls << endl;
-
     hdl->setVars(id, numnodes, expected_calls, writep);
     /*
     std::ifstream myfile;
@@ -252,49 +164,12 @@ int main(int argc, char *argv[])
     uint64_t next_op_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                 std::chrono::high_resolution_clock::now().time_since_epoch())
                                 .count();
-
-    uint64_t main_loop_start = std::chrono::duration_cast<std::chrono::seconds>(
-                               std::chrono::high_resolution_clock::now().time_since_epoch())
-                               .count();
-    
-    uint64_t current_loop_time;
-    uint64_t diff_time;
-
-// #ifdef FAILURE_MODE
-//     expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
-// #endif
-
-
-    int last_failed_count = hdl->failed_nodes.size();
-
-
-    while (!shutdown_requested.load() &&hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
+#ifdef FAILURE_MODE
+    expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
+#endif
+    while (hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
-
-
-        current_loop_time = std::chrono::duration_cast<std::chrono::seconds>(
-                               std::chrono::high_resolution_clock::now().time_since_epoch())
-                               .count();
-
-        static uint64_t last_print_time = 0;
-        if (current_loop_time - last_print_time >= 1) {
-            std::cout << "[Main] still alive at t=" << current_loop_time - main_loop_start << "s\n";
-            last_print_time = current_loop_time;
-
-            // if (hdl->obj.waittobestable.load() == (expected_calls))
-            // {
-                std::cout<< "hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
-
-                // break;
-            // }
-            // else
-            // {
-                // std::cout<< "hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
-            // }
-
-
-        }
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
         if (it != calls.end())
@@ -331,11 +206,6 @@ int main(int argc, char *argv[])
 
         {
 
-            // if (current_loop_time - main_loop_start %1==0)
-            // {
-            //     std::cout << "In main loop: ack_index < std::atomic_load(&hdl->obj.send_ack_call_list)->size()" << std::endl;
-            // }             
-
             auto ack_list_snapshot = std::atomic_load(&hdl->obj.send_ack_call_list);
             auto length = hdl->serializeCalls((*ack_list_snapshot)[ack_index], payload);
             std::string message(payload, payload + length);
@@ -361,15 +231,15 @@ int main(int argc, char *argv[])
                               .count();
         if (it != calls.end())
         {
-// #ifdef FAILURE_MODE
-//             if (id == failed_node && std::distance(calls.begin(), it) >= calls.size() / 2)
-//             {
-//                 std::cout << "Node " << id << " simulating failure mid-execution at call index "
-//                           << std::distance(calls.begin(), it) << "\n";
-//                 // sc->closeAllSockets();
-//                 break;
-//             }
-// #endif
+#ifdef FAILURE_MODE
+            if (id == failed_node && std::distance(calls.begin(), it) >= calls.size() / 2)
+            {
+                std::cout << "Node " << id << " simulating failure mid-execution at call index "
+                          << std::distance(calls.begin(), it) << "\n";
+                sc->closeAllSockets();
+                break;
+            }
+#endif
 
             if (preit != it)
             {
@@ -388,56 +258,15 @@ int main(int argc, char *argv[])
             }
 
             Call &req = *it;
-
-
-            {
-                std::lock_guard<std::mutex> lock(hdl->failure_queue_mutex);
-                while (!hdl->pending_failures.empty()) {
-                    int failed_id = hdl->pending_failures.front();
-                    hdl->pending_failures.pop();
-
-                    if (hdl->failed_nodes.count(failed_id) > 0) {
-                        continue;
-                    }
-                    
-                    std::cout << "Processing queued failure for node " << failed_id << std::endl;
-                    hdl->setfailurenode(failed_id);
-                    
-                    // If waiting, SKIP the blocked operation instead of retrying
-                    if (wait && it != calls.end()) {
-                        std::cout << "SKIPPING blocked operation " << it->type 
-                                << " after node " << failed_id << " failure" << std::endl;
-                        ++it;  // Move to next operation
-                        
-                        early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            std::chrono::high_resolution_clock::now().time_since_epoch())
-                            .count() - early_start_time;
-                    }
-                    
-                    wait = false;
-
-                }
-            }
-
-
-
-
-
-
 #ifndef CRDT
             if (wait)
             {
-
-                // if (current_loop_time - main_loop_start %1==0)
-                // {
-                //     std::cout << "In main loop: if (wait)" << std::endl;
-                // }            
-
+                /*
                 if (onetimeprint)
                 {
-                    // std::cout << "wait for stable index: " << hdl->obj.waittobestable.load() << std::endl;
+                    std::cout << "local wait for stable index: " << hdl->obj.waittobestable.load() << std::endl;
                     onetimeprint = false;
-                }
+                }*/
                 if (stableindex < hdl->obj.waittobestable.load())
                 {
                     wait = false;
@@ -446,30 +275,12 @@ int main(int argc, char *argv[])
                     // std::cout << "end sync phase" << test_counter<< std::endl;
                 }
             }
-
 #endif
-
-
-
             if (req.type != "Read")
             {
 #if defined(OPTIMISTIC_REPLICATION)
-
-
-                // if (current_loop_time - main_loop_start %1==0)
-                // {
-                //     std::cout << "In main loop: #if defined(OPTIMISTIC_REPLICATION)" << std::endl;
-                // }          
-
-
                 if (!wait)
                 {
-                    // if (current_loop_time - main_loop_start %1==0)
-                    // {
-                    //     std::cout << "In main loop: if (!wait)" << std::endl;
-                    // }  
-                    
-
                     hdl->localHandler(req, send_flag, permiss, stableindex);
 
                     if (send_flag)
@@ -480,70 +291,31 @@ int main(int argc, char *argv[])
                         payload = &payload_buffer[0];
                         auto buff = std::make_unique<Buffer>();
                         buff->setContent(const_cast<char *>(message.c_str()), length);
-                        
-                        std::cout << "Broadcasting with send_flag=true" << std::endl;
 
                         sc->broadcast(buff.get());
-
-                        std::cout << "Done Broadcasting with send_flag=true" << std::endl;
-
                         sent++;
                         // preit = it;
                         ++it;
-
-
-
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
-
-                                
                         delay = 10;
                         wait = false;
-
-                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() -
-                                                      early_start_time;
-                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() - main_loop_start;
-
-                        std::ostringstream oss;
-                        oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
-                        std::cout << oss.str();
-
-
                     }
                     else if (permiss)
                     {
-                        
                         wait = true;
                         continue;
                     }
                     else
                     {
-
-
                         // preit = it;
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
-
-                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() -
-                                                      early_start_time;
-                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() - main_loop_start;
-                        std::ostringstream oss;
-                        oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
-                        std::cout << oss.str();
-
                     }
                 }
 #endif
@@ -571,29 +343,12 @@ int main(int argc, char *argv[])
             }
             else
             {
-
-                // if (current_loop_time - main_loop_start %1==0)
-                // {
-                //     std::cout << "In main loop: else" << std::endl;
-                // }         
-
                 // preit = it;
                 ++it;
                 early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                   std::chrono::high_resolution_clock::now().time_since_epoch())
                                                   .count() -
                                               early_start_time;
-
-                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() -
-                                                      early_start_time;
-                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() - main_loop_start;
-                        std::ostringstream oss;
-                        oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
-                        std::cout << oss.str();
             }
             /*if(it==calls.end())
                 early_response_time_totall += std::chrono::duration_cast<std::chrono::microseconds>(
@@ -604,22 +359,11 @@ int main(int argc, char *argv[])
 #endif
         if (hdl->last_call_stable.load())
         {
-
-            // if (current_loop_time - main_loop_start %1==0)
-            // {
-            //     std::cout << "In main loop: hdl->last_call_stable.load()" << std::endl;
-            // }         
-
-
-
             real_end_time = std::chrono::duration_cast<std::chrono::microseconds>(
                                 std::chrono::high_resolution_clock::now().time_since_epoch())
                                 .count();
             hdl->last_call_stable.store(false);
         }
-
-
-
     }
 
     uint64_t local_end = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -635,20 +379,13 @@ int main(int argc, char *argv[])
         std::cout << "total average response time in milliseconds: "
                   << (static_cast<double>(real_end_time - local_start) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000 << std::endl;
     std::cout << "early average response time in milliseconds: " << (static_cast<double>(early_response_time_totall) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000000 << std::endl;
-// #ifdef FAILURE_MODE
-//     numop -= (numop / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
-// #endif
+#ifdef FAILURE_MODE
+    numop -= (numop / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
+#endif
     if (ops_rate == 1e9)
         std::cout << "throughput: "
                   << (static_cast<double>(numop) / static_cast<double>(local_end - local_start)) * 1000 << std::endl;
-
-    std::cout << "total time for simulation = " <<  static_cast<double>(local_end - local_start) / 1000  << " milliseconds "<<std::endl;
-    
     // object->toString();
-    std::this_thread::sleep_for(std::chrono::seconds(30));
-
-    global_sc = nullptr;
-    global_hdl = nullptr;
-
+    std::this_thread::sleep_for(std::chrono::seconds(120));
     return 0;
 }

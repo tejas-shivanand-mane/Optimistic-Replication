@@ -1,4 +1,3 @@
-#include <memory>
 #pragma once
 #include "replicated-object.hpp"
 
