@@ -281,6 +281,19 @@ int main(int argc, char *argv[])
         if (current_loop_time - last_print_time >= 1) {
             std::cout << "[Main] still alive at t=" << current_loop_time - main_loop_start << "s\n";
             last_print_time = current_loop_time;
+
+            // if (hdl->obj.waittobestable.load() == (expected_calls))
+            // {
+                std::cout<< "hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
+
+                // break;
+            // }
+            // else
+            // {
+                // std::cout<< "hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
+            // }
+
+
         }
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
@@ -639,16 +652,7 @@ int main(int argc, char *argv[])
         }
 
 
-        if (hdl->obj.waittobestable.load() == (expected_calls))
-        {
-            std::cout<< "hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
 
-            break;
-        }
-        else
-        {
-            std::cout<< "hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
-        }
     }
 
     uint64_t local_end = std::chrono::duration_cast<std::chrono::microseconds>(
