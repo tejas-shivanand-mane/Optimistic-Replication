@@ -637,6 +637,13 @@ int main(int argc, char *argv[])
                                 .count();
             hdl->last_call_stable.store(false);
         }
+
+
+        if (hdl->obj.waittobestable.load() == (expected_calls))
+        {
+            
+            break;
+        }
     }
 
     uint64_t local_end = std::chrono::duration_cast<std::chrono::microseconds>(
