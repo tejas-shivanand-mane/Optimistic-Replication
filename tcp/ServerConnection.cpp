@@ -5,7 +5,7 @@
 
 #include "Socket.cpp"
 #include <atomic>
-// #include "config.hpp"
+#include "config.hpp"
 
 // #include "../replicated-object.hpp"
 // #include "../protocol2-partialsyn.cpp"
