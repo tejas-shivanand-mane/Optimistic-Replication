@@ -3,6 +3,7 @@
 #include "../wellcoordination/benchmark/set.hpp"
 #include "../wellcoordination/benchmark/movie.hpp"
 #include "../wellcoordination/benchmark/courseware.hpp"
+#include "../wellcoordination/benchmark/ycsb.hpp"
 
 #include "../wellcoordination/benchmark/op-crdt-reg.hpp"
 #include "../wellcoordination/benchmark/op-crdt-gset.hpp"
@@ -10,7 +11,8 @@
 
 // #define FAILURE_MODE
 
-#define PROJECT
+// #define PROJECT
+#define YCSB
 // #define STACK
 // #define SET
 // #define MOVIE
@@ -32,6 +34,10 @@ public:
 
 #ifdef MOVIE
     Movie obj;
+#endif
+
+#ifdef YCSB
+    Ycsb obj;
 #endif
 
 #ifdef COURSEWARE
