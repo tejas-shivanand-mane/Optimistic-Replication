@@ -5,7 +5,7 @@
 #include <vector>
 #include <random>
 #include <cmath>
-
+#include <memory>
 #include "ycsb.hpp"
 
 /* ---------------- Zipfian ---------------- */
