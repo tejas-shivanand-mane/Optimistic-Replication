@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   int nr_procs = std::atoi(argv[1]);
   int num_ops = std::atoi(argv[2]);
 
-  double write_percentage = std::atof(argv[3]) / 100.0;
+  double write_percentage = std::atof(argv[3]);
 
   loc += std::to_string(nr_procs) + "-" + std::to_string(num_ops) + "-" +
          std::to_string(static_cast<int>(write_percentage));
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 
   std::random_device rd;
   std::mt19937_64 gen(rd());
-  std::bernoulli_distribution is_write(write_percentage);
+  std::bernoulli_distribution is_write(write_percentage/100.0);
 
   /* ------------------------------------------------------------
    * Generate YCSB operations
