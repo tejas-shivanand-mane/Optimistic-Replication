@@ -10,8 +10,8 @@
 // #define PROJECT
 // #define STACK
 // #define SET
-// #define MOVIE
-#define COURSEWARE
+#define MOVIE
+// #define COURSEWARE
 
 
 // #define CRDT // we need this if we want to run CRDTs Use Cases. Then need to select one of following options.
