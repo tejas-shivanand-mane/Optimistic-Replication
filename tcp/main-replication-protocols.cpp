@@ -300,6 +300,9 @@ int main(int argc, char *argv[])
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
+
+                        std::cout << "op finished 1" << std::endl;
+
                         delay = 10;
                         wait = false;
                     }
@@ -311,11 +314,14 @@ int main(int argc, char *argv[])
                     else
                     {
                         // preit = it;
+
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
+
+                        std::cout << "op finished 2" << std::endl;
                     }
                 }
 #endif
@@ -349,6 +355,9 @@ int main(int argc, char *argv[])
                                                   std::chrono::high_resolution_clock::now().time_since_epoch())
                                                   .count() -
                                               early_start_time;
+
+                std::cout << "op finished 3" << std::endl;
+
             }
             /*if(it==calls.end())
                 early_response_time_totall += std::chrono::duration_cast<std::chrono::microseconds>(
