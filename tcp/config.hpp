@@ -7,8 +7,8 @@
 #define OPTIMISTIC_REPLICATION
 // #define ECROS
 
-// #define PROJECT
-#define STACK
+#define PROJECT
+// #define STACK
 // #define SET
 // #define MOVIE
 // #define COURSEWARE
