@@ -8,8 +8,8 @@
 // #define ECROS
 
 // #define PROJECT
-// #define STACK
-#define SET
+#define STACK
+// #define SET
 // #define MOVIE
 // #define COURSEWARE
 
