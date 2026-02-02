@@ -387,6 +387,10 @@ int main(int argc, char *argv[])
     if (ops_rate == 1e9)
         std::cout << "total average response time in milliseconds: "
                   << (static_cast<double>(real_end_time - local_start) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000 << std::endl;
+
+
+    std::cout << "end time- start_time, numops, numnodes : "
+                << static_cast<double>(real_end_time - local_start) << ", " << (static_cast<double>(numop)) << ", " << (static_cast<double>(numnodes))<< std::endl;
     std::cout << "early average response time in milliseconds: " << (static_cast<double>(early_response_time_totall) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000000 << std::endl;
 #ifdef FAILURE_MODE
     numop -= (numop / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
