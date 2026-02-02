@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
                                                           .count() -
                                                       early_start_time;
 
-                        // std::cout << "op finished 1" << std::endl;
+                        std::cout << "op finished 1" << std::endl;
 
                         delay = 10;
                         wait = false;
@@ -321,7 +321,7 @@ int main(int argc, char *argv[])
                                                           .count() -
                                                       early_start_time;
 
-                        // std::cout << "op finished 2" << std::endl;
+                        std::cout << "op finished 2" << std::endl;
                     }
                 }
 #endif
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
                                                   .count() -
                                               early_start_time;
 
-                // std::cout << "op finished 3" << std::endl;
+                std::cout << "op finished 3" << std::endl;
 
             }
             /*if(it==calls.end())
