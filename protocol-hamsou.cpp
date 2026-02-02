@@ -36,6 +36,10 @@ public:
     Set obj;
 #endif
 
+#ifdef YCSB
+    Set YCSB;
+#endif
+
 #ifdef OPCRDTCOUNTER
     Opcrdtcounter obj;
 #endif

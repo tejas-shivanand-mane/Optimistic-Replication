@@ -56,7 +56,7 @@
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
-  "cmake.sourceDirectory": "C:/Users/javad/Desktop/Optimistic-Replication/junction",
+  "cmake.sourceDirectory": "/home/tejas/work/Optimistic-Replication/junction",
   "files.associations": {
     "*.inc": "cpp",
     "array": "cpp",
