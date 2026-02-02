@@ -5,6 +5,7 @@
 #include "../wellcoordination/benchmark/set.hpp"
 #include "../wellcoordination/benchmark/movie.hpp"
 #include "../wellcoordination/benchmark/courseware.hpp"
+#include "../wellcoordination/benchmark/ycsb.hpp"
 
 #include "../wellcoordination/benchmark/op-crdt-reg.hpp"
 #include "../wellcoordination/benchmark/op-crdt-gset.hpp"
@@ -37,7 +38,7 @@ public:
 #endif
 
 #ifdef YCSB
-    Set YCSB;
+    Ycsb obj;
 #endif
 
 #ifdef OPCRDTCOUNTER
