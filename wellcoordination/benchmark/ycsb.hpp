@@ -41,7 +41,7 @@ public:
 
     enum YcsbEnum {
         Add  = 0,
-        Remove  = 0,
+        Remove  = 1,
         Read = 2
     };
 
@@ -51,6 +51,8 @@ public:
     {
     case Add:
       return "Add";
+    case Remove:
+      return "Remove";
     case Read:
       return "Read";
     default:
@@ -119,7 +121,7 @@ public:
   }
   bool fastisreachablelocal(Call &input1, const Call &input2)
   {
-    if ((input1.type == "Add") && (input2.type == "Remove") )
+    if ((input1.type == "Add") && (input2.type == "Remove"))
     {
       return true;
     }
@@ -127,7 +129,7 @@ public:
   }
   bool fastisreachableremote(Call &input1, const Call &input2)
   {
-    if (((input1.type == "Add") && (input2.type == "Remove") )) //check it is concurrent?
+    if (((input1.type == "Add") && (input2.type == "Remove"))) //check it is concurrent?
     {
       return true;
     }
@@ -171,7 +173,7 @@ public:
 
         call_id_counter++;
         call.call_id = call_id_counter;
-        if (call.type == "Add")
+        if (call.type == "Add"|| call.type == "Remove")
         {
           //std::getline(iss, temp, '-');
           //call.value1 = std::stoi(temp);
@@ -196,6 +198,10 @@ public:
     {
       current_state.elements.insert(call.value1);
     }
+    else if (call.type == "Remove")
+    {
+      current_state.elements.erase(call.value1);
+    }
     else if (call.type == "Read")
     {
       // Do nothing
@@ -211,6 +217,10 @@ public:
     if (call.type == "Add")
     {
       stable_state.elements.insert(call.value1);
+    }
+    else if (call.type == "Remove")
+    {
+      stable_state.elements.erase(call.value1);
     }
     else if (call.type == "Read")
     {

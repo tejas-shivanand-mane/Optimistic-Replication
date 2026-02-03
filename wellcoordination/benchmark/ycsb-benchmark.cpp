@@ -122,6 +122,9 @@ int main(int argc, char *argv[])
   /* ------------------------------------------------------------
    * Generate YCSB operations
    * ------------------------------------------------------------ */
+
+   std::uniform_int_distribution<int> write_op_dist(0, 1);  // 0 or 1
+
   for (int i = 0; i < nr_procs; i++) {
     for (int j = 0; j < num_ops / nr_procs; j++) {
 
@@ -129,8 +132,9 @@ int main(int argc, char *argv[])
 
       if (is_write(gen)) {
         // UPDATE
-        calls[i].push_back(
-            "0 " + std::to_string(key));
+        int op = write_op_dist(gen);
+        calls[i].push_back(std::to_string(op) + " " + std::to_string(key));
+        
       } else {
         // READ
         calls[i].push_back(
