@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 
 
 
-    uint64_t main_loop_start = std::chrono::duration_cast<std::chrono::seconds>(
+    uint64_t main_loop_start = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                std::chrono::high_resolution_clock::now().time_since_epoch())
                                .count();
     
@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
-                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                        auto ct = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
 
@@ -358,7 +358,7 @@ int main(int argc, char *argv[])
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
-                        auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                        auto ct = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() - main_loop_start;
                         std::ostringstream oss;
@@ -408,7 +408,7 @@ int main(int argc, char *argv[])
                                                     std::chrono::high_resolution_clock::now().time_since_epoch())
                                                     .count() -
                                                 early_start_time;
-                auto ct = std::chrono::duration_cast<std::chrono::seconds>(
+                auto ct = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                     std::chrono::high_resolution_clock::now().time_since_epoch())
                                                     .count() - main_loop_start;
                 std::ostringstream oss;
