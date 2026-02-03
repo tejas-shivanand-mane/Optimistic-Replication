@@ -7,11 +7,11 @@
 #define OPTIMISTIC_REPLICATION
 // #define ECROS
 
-#define PROJECT
+// #define PROJECT
 // #define STACK
 // #define SET
 // #define MOVIE
-// #define YCSB
+#define YCSB
 // #define COURSEWARE
 
 
