@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
                                                     std::chrono::high_resolution_clock::now().time_since_epoch())
                                                     .count() - main_loop_start;
                 std::ostringstream oss;
-                oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << "expected_calls = "<< expected_calls << ", hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
+                oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
                 std::cout << oss.str();
 
 
@@ -438,7 +438,7 @@ int main(int argc, char *argv[])
     }
 
     std::ostringstream oss;
-    oss << " ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
+    oss << "Ending: ops_count: " << std::distance(calls.begin(), it) << "expected_calls = "<< expected_calls << ", hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
     std::cout << oss.str();
 
     uint64_t local_end = std::chrono::duration_cast<std::chrono::microseconds>(
