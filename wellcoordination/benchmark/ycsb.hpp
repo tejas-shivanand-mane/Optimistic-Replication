@@ -41,6 +41,7 @@ public:
 
     enum YcsbEnum {
         Add  = 0,
+        Remove  = 0,
         Read = 2
     };
 
@@ -67,7 +68,7 @@ public:
 
   bool checkValidcall(Call call)
   {
-    if (call.type == "Add")
+    if (call.type == "Add"|| call.type == "Remove")
       true;
     else
       false;
@@ -118,7 +119,7 @@ public:
   }
   bool fastisreachablelocal(Call &input1, const Call &input2)
   {
-    if ((input1.type == "Add") )
+    if ((input1.type == "Add") && (input2.type == "Remove") )
     {
       return true;
     }
@@ -126,7 +127,7 @@ public:
   }
   bool fastisreachableremote(Call &input1, const Call &input2)
   {
-    if (((input1.type == "Add") )) //check it is concurrent?
+    if (((input1.type == "Add") && (input2.type == "Remove") )) //check it is concurrent?
     {
       return true;
     }
@@ -202,7 +203,7 @@ public:
     else
     {
       // std::cout << "wrong method name" << std::endl;
-      ;
+      
     }
   }
   void updateStableState(Call call)
@@ -218,7 +219,7 @@ public:
     else
     {
       // std::cout << "wrong method name" << std::endl;
-      ;
+      
     }
   }
 };
