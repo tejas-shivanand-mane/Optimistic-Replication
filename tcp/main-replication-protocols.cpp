@@ -159,6 +159,8 @@ int main(int argc, char *argv[])
     auto it = calls.begin();
     auto preit = calls.end();
     cout << "expected calls: " << expected_calls << endl;
+    cout << "calls.size(): " << calls.size() << endl;
+
     int ops_rate = oppersecond;          // desired ops/sec  //To measure throughput set tihs to 1e9
     int op_interval_ns = 1e9 / ops_rate; // nanoseconds per op
     uint64_t next_op_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
