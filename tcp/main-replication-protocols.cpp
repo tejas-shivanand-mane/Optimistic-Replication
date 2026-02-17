@@ -178,11 +178,19 @@ int main(int argc, char *argv[])
     
     uint64_t diff_time;
 
+    int first_print = 0;
+
 
 
     while (hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
+
+        if(first_print==0)
+        {
+            cout<< "started main loop, waittobestable: "<< endl;
+            first_print++;
+        }
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef CRDT_MESSAGE_PASSING
         if (it != calls.end())
