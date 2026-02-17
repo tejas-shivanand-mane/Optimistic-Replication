@@ -397,7 +397,7 @@ int main(int argc, char *argv[])
                              std::chrono::high_resolution_clock::now().time_since_epoch())
                              .count();
 
-    std::cout <<"simulation time in seconds: " << (static_cast<double>(simul_end - simul_start)) / 1000 << std::endl;
+    std::cout <<"simulation time in seconds: " << (static_cast<double>(simul_end - simul_start)) / 1000 << ", numop: " << numop << std::endl;
 
 
 
