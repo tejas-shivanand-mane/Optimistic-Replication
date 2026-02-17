@@ -165,6 +165,12 @@ int main(int argc, char *argv[])
     uint64_t next_op_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                 std::chrono::high_resolution_clock::now().time_since_epoch())
                                 .count();
+
+
+    uint64_t simul_start = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::high_resolution_clock::now().time_since_epoch())
+                             .count();
+
             
 #ifdef FAILURE_MODE
     expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
@@ -384,6 +390,17 @@ int main(int argc, char *argv[])
     if (ops_rate == 1e9)
         std::cout << "total average response time in milliseconds: "
                   << (static_cast<double>(real_end_time - local_start) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000 << std::endl;
+
+    
+
+    uint64_t simul_end = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::high_resolution_clock::now().time_since_epoch())
+                             .count();
+
+    std::cout <<"simulation time in seconds: " << (static_cast<double>(simul_end - simul_start)) / 1000 << std::endl;
+
+
+
     std::cout << "early average response time in milliseconds: " << (static_cast<double>(early_response_time_totall) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000000 << std::endl;
 #ifdef FAILURE_MODE
     numop -= (numop / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
