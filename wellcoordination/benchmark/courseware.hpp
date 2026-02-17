@@ -65,18 +65,18 @@ public:
   }
   bool locallyPermissibility(Call call) // For the courseware, all benchmark files should be generated on a single machine and then passed to several node replicas.
   {
-    return true; //if you can not generate the benchmark files on a single machine, then you can make this line uncommented.
-    if (call.type == "Enroll")
-    {
-      if (current_state.student_ids.find(call.value1) != current_state.student_ids.end() && current_state.course_ids.find(call.value2) != current_state.course_ids.end())
-        return true;
-      else
-        return false;
-    }
-    else
-    {
-      return true;
-    }
+    return true; // for testing performance of the system, we can assume all calls are locally permissible. You can make the following code uncommented if you want to test the performance of the system with more realistic benchmark files where not all calls are locally permissible.
+    // if (call.type == "Enroll")
+    // {
+    //   if (current_state.student_ids.find(call.value1) != current_state.student_ids.end() && current_state.course_ids.find(call.value2) != current_state.course_ids.end())
+    //     return true;
+    //   else
+    //     return false;
+    // }
+    // else
+    // {
+    //   return true;
+    // }
     // addproject and addemployee are always permissible
     // for works on need to check employeeid and projectid
     // for deleteproject do nothing

@@ -5,14 +5,14 @@
 
 //#define CRDT_MESSAGE_PASSING
 #define OPTIMISTIC_REPLICATION
-// #define ECROS
+//#define ECROS
 
 // #define PROJECT
-// #define STACK
+//#define STACK
 #define SET
 // #define MOVIE
-// #define YCSB
 // #define COURSEWARE
+// #define COMPLEXCOURSEWARE
 
 
 // #define CRDT // we need this if we want to run CRDTs Use Cases. Then need to select one of following options.

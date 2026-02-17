@@ -159,39 +159,24 @@ int main(int argc, char *argv[])
     auto it = calls.begin();
     auto preit = calls.end();
     cout << "expected calls: " << expected_calls << endl;
-    cout << "calls.size(): " << calls.size() << endl;
-
     int ops_rate = oppersecond;          // desired ops/sec  //To measure throughput set tihs to 1e9
     int op_interval_ns = 1e9 / ops_rate; // nanoseconds per op
+    int lasttimeprintstableindex=-1;
     uint64_t next_op_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                 std::chrono::high_resolution_clock::now().time_since_epoch())
                                 .count();
+            
 #ifdef FAILURE_MODE
     expected_calls -= (expected_calls / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes
 #endif
-
-
-
-    uint64_t main_loop_start = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                               std::chrono::high_resolution_clock::now().time_since_epoch())
-                               .count();
-    
-    uint64_t diff_time;
-
-    int first_print = 0;
-
-
-
     while (hdl->obj.waittobestable.load() < (expected_calls)) // hdl->obj.stable_state.index < expected_calls //hdl->obj.waittobestable.load() < expected_calls
     {
 
-
-        if(first_print==0)
-        {
-            cout<< "started main loop, waittobestable: "<< endl;
-            first_print++;
-        }
 // std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        if(lasttimeprintstableindex!=hdl->obj.waittobestable.load()){
+            cout<<hdl->obj.waittobestable.load()<<endl;
+            lasttimeprintstableindex=hdl->obj.waittobestable.load();
+        }
 #ifdef CRDT_MESSAGE_PASSING
         if (it != calls.end())
         {
@@ -321,31 +306,8 @@ int main(int argc, char *argv[])
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
-
-                        // std::cout << "op finished 1" << std::endl;
-
                         delay = 10;
                         wait = false;
-
-
-
-
-                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() -
-                                                      early_start_time;
-                        auto ct = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() - main_loop_start;
-
-                        std::ostringstream oss;
-                        oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
-                        std::cout << oss.str();
-
-
-
-
-
                     }
                     else if (permiss)
                     {
@@ -355,28 +317,11 @@ int main(int argc, char *argv[])
                     else
                     {
                         // preit = it;
-
                         ++it;
                         early_response_time_totall += std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                           std::chrono::high_resolution_clock::now().time_since_epoch())
                                                           .count() -
                                                       early_start_time;
-
-                        // std::cout << "op finished 2" << std::endl;
-
-                        diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() -
-                                                      early_start_time;
-                        auto ct = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                          std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                          .count() - main_loop_start;
-                        std::ostringstream oss;
-                        oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
-                        std::cout << oss.str();
-
-
-
                     }
                 }
 #endif
@@ -410,24 +355,6 @@ int main(int argc, char *argv[])
                                                   std::chrono::high_resolution_clock::now().time_since_epoch())
                                                   .count() -
                                               early_start_time;
-
-                // std::cout << "op finished 3" << std::endl;
-
-
-                diff_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                    std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                    .count() -
-                                                early_start_time;
-                auto ct = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                    std::chrono::high_resolution_clock::now().time_since_epoch())
-                                                    .count() - main_loop_start;
-                std::ostringstream oss;
-                oss << "Time: " << ct << "; ops_count: " << std::distance(calls.begin(), it) << ", responseTime: " << diff_time << std::endl;
-                std::cout << oss.str();
-
-
-
-
             }
             /*if(it==calls.end())
                 early_response_time_totall += std::chrono::duration_cast<std::chrono::microseconds>(
@@ -445,10 +372,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::ostringstream oss;
-    oss << "Ending: ops_count: " << std::distance(calls.begin(), it) << "expected_calls = "<< expected_calls << ", hdl->obj.waittobestable.load(): " << hdl->obj.waittobestable.load() << std::endl;
-    std::cout << oss.str();
-
     uint64_t local_end = std::chrono::duration_cast<std::chrono::microseconds>(
                              std::chrono::high_resolution_clock::now().time_since_epoch())
                              .count();
@@ -461,10 +384,6 @@ int main(int argc, char *argv[])
     if (ops_rate == 1e9)
         std::cout << "total average response time in milliseconds: "
                   << (static_cast<double>(real_end_time - local_start) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000 << std::endl;
-
-
-    std::cout << "end time- start_time, numops, numnodes : "
-                << static_cast<double>(real_end_time - local_start) << ", " << (static_cast<double>(numop)) << ", " << (static_cast<double>(numnodes))<< std::endl;
     std::cout << "early average response time in milliseconds: " << (static_cast<double>(early_response_time_totall) / (static_cast<double>(numop) / static_cast<double>(numnodes))) / 1000000 << std::endl;
 #ifdef FAILURE_MODE
     numop -= (numop / numnodes) / 2; // for failure mode we need to reduce the expected calls by numnodes

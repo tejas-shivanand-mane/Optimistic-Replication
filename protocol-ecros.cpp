@@ -29,6 +29,10 @@
     #include "../wellcoordination/benchmark/ecros-courseware.hpp";
 #endif
 
+#ifdef COMPLEXCOURSEWARE
+    #include "../wellcoordination/benchmark/ecros-complex-courseware.hpp";
+#endif
+
 class Handler
 {
 public:
@@ -57,6 +61,10 @@ public:
 
 #ifdef COURSEWARE
     Courseware obj; // Courseware‐specific state & stubs live here
+#endif
+
+#ifdef COMPLEXCOURSEWARE
+    Complexcourseware obj; // ComplexCourseware‐specific state & stubs live here
 #endif
 
     struct Edge
@@ -115,40 +123,60 @@ public:
         //acks.resize(number_of_nodes, std::vector<int>(350000, 0));
     }
 
-    static size_t serializeCalls(Call call, uint8_t *buffer)
+    size_t serializeCalls(Call call, uint8_t *buffer)
     {
         std::string type = call.type;
         int value1 = call.value1;
         int value2 = call.value2;
+        int value3 = call.value3;
+        int value4 = call.value4;
+        // int value1 = test;
+        // int value2 = test;
+        //test++;
         int node_id = call.node_id;
         int call_id = call.call_id;
         bool stable = call.stable;
-        bool applied = call.applied; // NEW FIELD
         std::vector<int> call_vector_clock = call.call_vector_clock;
 
         uint8_t *start = buffer + sizeof(uint64_t);
         auto temp = start;
 
+        // Serialize type
         uint64_t type_len = type.size();
         *reinterpret_cast<uint64_t *>(start) = type_len;
         start += sizeof(type_len);
         memcpy(start, type.c_str(), type_len);
         start += type_len;
 
+        // Serialize value1
         *reinterpret_cast<int *>(start) = value1;
         start += sizeof(value1);
+
+        // Serialize value2
         *reinterpret_cast<int *>(start) = value2;
         start += sizeof(value2);
+
+        // Serialize value3
+        *reinterpret_cast<int *>(start) = value3;
+        start += sizeof(value3);
+
+        // Serialize value4
+        *reinterpret_cast<int *>(start) = value4;
+        start += sizeof(value4);
+
+        // Serialize node_id
         *reinterpret_cast<int *>(start) = node_id;
         start += sizeof(node_id);
+
+        // Serialize call_id
         *reinterpret_cast<int *>(start) = call_id;
         start += sizeof(call_id);
 
+        // Serialize stable
         *reinterpret_cast<bool *>(start) = stable;
         start += sizeof(stable);
-        *reinterpret_cast<bool *>(start) = applied; // serialize applied
-        start += sizeof(applied);
 
+        // Serialize call_vector_clock
         for (int vc : call_vector_clock)
         {
             *reinterpret_cast<int *>(start) = vc;
@@ -156,35 +184,60 @@ public:
         }
 
         uint64_t len = start - temp;
+
         auto length = reinterpret_cast<uint64_t *>(start - len - sizeof(uint64_t));
         *length = len;
 
-        // std::cout << "[Serialize] Call: type=" << type << ", node_id=" << node_id << ", call_id=" << call_id << std::endl;
-        return len + sizeof(uint64_t);
+        // Debug print to verify serialized buffer
+        // std::cout << "Serialized buffer: ";
+        // for (size_t i = 0; i < len; ++i)
+        //{
+        // std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
+        //}
+        // std::cout << std::endl;
+
+        return len + sizeof(uint64_t) + 2 * sizeof(uint64_t);
     }
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
         uint8_t *start = buffer + sizeof(uint64_t);
+        auto temp = start;
 
+        // Deserialize type
         uint64_t type_len = *reinterpret_cast<uint64_t *>(start);
         start += sizeof(type_len);
         std::string type(reinterpret_cast<char *>(start), type_len);
         start += type_len;
 
+        // Deserialize value1
         int value1 = *reinterpret_cast<int *>(start);
         start += sizeof(value1);
+
+        // Deserialize value2
         int value2 = *reinterpret_cast<int *>(start);
         start += sizeof(value2);
+
+        // Deserialize value3
+        int value3 = *reinterpret_cast<int *>(start);
+        start += sizeof(value3);
+
+        // Deserialize value4
+        int value4 = *reinterpret_cast<int *>(start);
+        start += sizeof(value4);
+
+        // Deserialize node_id
         int node_id = *reinterpret_cast<int *>(start);
         start += sizeof(node_id);
+
+        // Deserialize call_id
         int call_id = *reinterpret_cast<int *>(start);
         start += sizeof(call_id);
 
+        // Deserialize stable
         bool stable = *reinterpret_cast<bool *>(start);
         start += sizeof(stable);
-        bool applied = *reinterpret_cast<bool *>(start); // deserialize applied
-        start += sizeof(applied);
 
+        // Deserialize call_vector_clock
         std::vector<int> call_vector_clock(number_of_nodes, 0);
         for (int &vc : call_vector_clock)
         {
@@ -192,11 +245,17 @@ public:
             start += sizeof(vc);
         }
 
-        call = Call(type, value1, value2, node_id, call_id, stable);
-        call.applied = applied; // assign applied value
-        call.call_vector_clock = call_vector_clock;
+        // Debug print to verify deserialized call_vector_clock
+        // std::cout << "Deserialized call_vector_clock: ";
+        // for (int vc : call_vector_clock)
+        //{
+        // std::cout << vc << " ";
+        //}
+        // std::cout << std::endl;
 
-        // std::cout << "[Deserialize] Call: type=" << type << ", node_id=" << node_id << ", call_id=" << call_id << std::endl;
+        // Assign the deserialized values to the call object
+        call = Call(type, value1, value2, value3, value4, node_id, call_id, stable);
+        call.call_vector_clock = call_vector_clock;
     }
 
     // -----------------------------------------------------------------------

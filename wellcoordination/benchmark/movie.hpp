@@ -63,7 +63,7 @@ public:
   }
   bool locallyPermissibility(Call call) // For the movie, all benchmark files should be generated on a single machine and then passed to several node replicas.
   {
-    return true;
+    return true; // for testing performance of the system, we can assume all calls are locally permissible. You can make the following code uncommented if you want to test the performance of the system with more realistic benchmark files where not all calls are locally permissible.
   }
   // addproject and addemployee are always permissible
   // for works on need to check employeeid and projectid

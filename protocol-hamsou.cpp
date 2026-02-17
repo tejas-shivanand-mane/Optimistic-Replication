@@ -5,7 +5,7 @@
 #include "../wellcoordination/benchmark/set.hpp"
 #include "../wellcoordination/benchmark/movie.hpp"
 #include "../wellcoordination/benchmark/courseware.hpp"
-#include "../wellcoordination/benchmark/ycsb.hpp"
+#include "../wellcoordination/benchmark/complex-courseware.hpp"
 
 #include "../wellcoordination/benchmark/op-crdt-reg.hpp"
 #include "../wellcoordination/benchmark/op-crdt-gset.hpp"
@@ -29,16 +29,16 @@ public:
     Courseware obj;
 #endif
 
+#ifdef COMPLEXCOURSEWARE
+    ComplexCourseWare obj;
+#endif
+
 #ifdef STACK
     Stack obj;
 #endif
 
 #ifdef SET
     Set obj;
-#endif
-
-#ifdef YCSB
-    Ycsb obj;
 #endif
 
 #ifdef OPCRDTCOUNTER
@@ -97,6 +97,8 @@ public:
         std::string type = call.type;
         int value1 = call.value1;
         int value2 = call.value2;
+        int value3 = call.value3;
+        int value4 = call.value4;
         // int value1 = test;
         // int value2 = test;
         test++;
@@ -122,6 +124,14 @@ public:
         // Serialize value2
         *reinterpret_cast<int *>(start) = value2;
         start += sizeof(value2);
+
+        // Serialize value3
+        *reinterpret_cast<int *>(start) = value3;
+        start += sizeof(value3);
+
+        // Serialize value4
+        *reinterpret_cast<int *>(start) = value4;
+        start += sizeof(value4);
 
         // Serialize node_id
         *reinterpret_cast<int *>(start) = node_id;
@@ -181,6 +191,14 @@ public:
         int value2 = *reinterpret_cast<int *>(start);
         start += sizeof(value2);
 
+        // Deserialize value3
+        int value3 = *reinterpret_cast<int *>(start);
+        start += sizeof(value3);
+
+        // Deserialize value4
+        int value4 = *reinterpret_cast<int *>(start);
+        start += sizeof(value4);
+
         // Deserialize node_id
         int node_id = *reinterpret_cast<int *>(start);
         start += sizeof(node_id);
@@ -210,7 +228,7 @@ public:
         // std::cout << std::endl;
 
         // Assign the deserialized values to the call object
-        call = Call(type, value1, value2, node_id, call_id, stable);
+        call = Call(type, value1, value2, value3, value4, node_id, call_id, stable);
         call.call_vector_clock = call_vector_clock;
     }
     void localHandler(Call &call, bool &flag, bool &permiss, int &stableindex)

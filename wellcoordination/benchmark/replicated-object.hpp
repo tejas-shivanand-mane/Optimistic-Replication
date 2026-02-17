@@ -16,12 +16,15 @@
 #include <map>
 #include <stack>
 
+
 class Call
 {
 public:
     std::string type;
     int value1;
     int value2;
+    int value3;
+    int value4;
     int node_id;
     int call_id;
     bool stable;
@@ -29,11 +32,11 @@ public:
     bool applied;
 
     // Default constructor
-    Call() : type(""), value1(0), value2(0), node_id(0), call_id(0), stable(false), call_vector_clock(8, 0), applied(false) {}
+    Call() : type(""), value1(0), value2(0), value3(0), value4(0), node_id(0), call_id(0), stable(false), call_vector_clock(31, 0), applied(false) {}
 
     // Parameterized constructor
-    Call(std::string t, int v1, int v2, int n_id = 0, int c_id = 0, bool s = false, bool p = false)
-        : type(t), value1(v1), value2(v2), node_id(n_id), call_id(c_id), stable(s), call_vector_clock(8, 0), applied(p) {}
+    Call(std::string t, int v1, int v2, int v3, int v4, int n_id = 0, int c_id = 0, bool s = false, bool p = false)
+        : type(t), value1(v1), value2(v2), value3(v3), value4(v4), node_id(n_id), call_id(c_id), stable(s), call_vector_clock(31, 0), applied(p) {}
 };
 
 class DirectedGraph {

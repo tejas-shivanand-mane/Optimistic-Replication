@@ -1,0 +1,8 @@
+.a.out
+.ipynb_checkpoints/*
+.ipynb_checkpoints
+.vscode
+.vscode/*
+*.o
+*.so
+*.log
