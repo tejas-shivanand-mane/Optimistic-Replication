@@ -9,7 +9,9 @@
 
 // #define PROJECT
 //#define STACK
-#define SET
+// #define SET
+#define YCSB
+
 // #define MOVIE
 // #define COURSEWARE
 // #define COMPLEXCOURSEWARE

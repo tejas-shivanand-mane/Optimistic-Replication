@@ -3,6 +3,8 @@
 #include "../wellcoordination/benchmark/project.hpp"
 #include "../wellcoordination/benchmark/stack.hpp"
 #include "../wellcoordination/benchmark/set.hpp"
+#include "../wellcoordination/benchmark/ycsb.hpp"
+
 #include "../wellcoordination/benchmark/movie.hpp"
 #include "../wellcoordination/benchmark/courseware.hpp"
 #include "../wellcoordination/benchmark/complex-courseware.hpp"
@@ -39,6 +41,10 @@ public:
 
 #ifdef SET
     Set obj;
+#endif
+
+#ifdef YCSB
+    Ycsb obj;
 #endif
 
 #ifdef OPCRDTCOUNTER
