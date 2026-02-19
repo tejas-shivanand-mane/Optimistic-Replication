@@ -8,15 +8,78 @@
 #include <random>
 #include <vector>
 #include <unordered_set>
+#include <cmath>
 
 #include "project.hpp"
+
+/* ---------------- Zipfian ---------------- */
+class ZipfianGenerator {
+  uint64_t items;
+  double theta, zetan, alpha, eta;
+  std::mt19937_64 gen;
+  std::uniform_real_distribution<double> dist;
+
+  static double zeta(uint64_t n, double theta) {
+    double sum = 0.0;
+    for (uint64_t i = 1; i <= n; i++)
+      sum += 1.0 / std::pow((double)i, theta);
+    return sum;
+  }
+
+public:
+  ZipfianGenerator(uint64_t n, double theta = 0.99)
+      : items(n), theta(theta),
+        gen(std::random_device{}()), dist(0.0, 1.0) {
+
+    zetan = zeta(items, theta);
+    alpha = 1.0 / (1.0 - theta);
+    double zeta2 = zeta(2, theta);
+    eta = (1 - std::pow(2.0 / (double)items, 1 - theta)) /
+          (1 - zeta2 / zetan);
+  }
+
+  uint64_t next() {
+    double u = dist(gen);
+    double uz = u * zetan;
+    if (uz < 1.0) return 0;
+    if (uz < 1.0 + std::pow(0.5, theta)) return 1;
+    return static_cast<uint64_t>(
+        (double)items * std::pow(eta * u - eta + 1, alpha));
+  }
+};
+
+/* ---------------- Scrambled Zipfian ---------------- */
+static inline uint64_t fnvhash64(uint64_t v) {
+  const uint64_t FNV_OFFSET = 14695981039346656037ULL;
+  const uint64_t FNV_PRIME  = 1099511628211ULL;
+  uint64_t h = FNV_OFFSET;
+  for (int i = 0; i < 8; i++) {
+    h ^= (v & 0xff);
+    h *= FNV_PRIME;
+    v >>= 8;
+  }
+  return h;
+}
+
+class ScrambledZipfianGenerator {
+  ZipfianGenerator zipf;
+  uint64_t items;
+
+public:
+  ScrambledZipfianGenerator(uint64_t n)
+      : zipf(n), items(n) {}
+
+  uint64_t next() {
+    return fnvhash64(zipf.next()) % items;
+  }
+};
 
 std::string getRandomElement(const std::unordered_set<std::string> &set)
 {
   std::vector<std::string> elements(set.begin(), set.end());
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<> dis(0, elements.size() - 1);
+  std::uniform_int_distribution<> dis(0, (int)elements.size() - 1);
   int randomIndex = dis(gen);
   return elements[randomIndex];
 }
@@ -73,12 +136,17 @@ int main(int argc, char *argv[])
   std::cout << "expected #calls per update method "
             << expected_calls_per_update_method << std::endl;
 
-  int write_calls = total_writes;
+  int write_calls = (int)total_writes;
 
-  // Initialize C++11 random generator
+  /* ------------------------------------------------------------
+   * YCSB parameters (key generation)
+   * ------------------------------------------------------------ */
+  constexpr uint64_t KEYSPACE = 1000;
+  ScrambledZipfianGenerator keygen(KEYSPACE);
+
   std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<> dist(1, 1000);
+  std::mt19937_64 gen(rd());
+  std::uniform_int_distribution<int> write_op_dist(0, 1); // 0 or 1
 
   for (int i = 1; i <= nr_procs; i++)
   {
@@ -89,16 +157,18 @@ int main(int argc, char *argv[])
       for (; count < expected_calls_per_update_method;)
       {
         std::string callStr;
+
+        // YCSB-like scrambled-zipfian key
+        uint64_t key = keygen.next();
+
         if (type == 0)
         {
-          std::string c_id = std::to_string(dist(gen));
-          callStr = "0 " + c_id;
+          callStr = "0 " + std::to_string(key);
           real_num_calls++;
         }
         else if (type == 1)
         {
-          std::string c_id = std::to_string(dist(gen));
-          callStr = "1 " + c_id;
+          callStr = "1 " + std::to_string(key);
           real_num_calls++;
         }
 
@@ -118,9 +188,10 @@ int main(int argc, char *argv[])
   for (int i = 0; i < nr_procs; i++)
     std::cout << i + 1 << " size: " << calls[i].size() << std::endl;
 
-  while (calls[0].size() > calls[1].size() && read_calls != 0)
+  while (nr_procs >= 2 && calls[0].size() > calls[1].size() && read_calls != 0)
   {
-    calls[(index % (nr_procs - 1)) + 1].push_back(std::string("2"));
+    uint64_t key = keygen.next();
+    calls[(index % (nr_procs - 1)) + 1].push_back(std::string("2 " + std::to_string(key)));
     read_calls--;
     index++;
   }
@@ -133,7 +204,10 @@ int main(int argc, char *argv[])
   {
     for (int i = 0; i < nr_procs; i++)
       for (int j = 0; j < read_calls / nr_procs; j++)
-        calls[i].push_back(std::string("2"));
+      {
+        uint64_t key = keygen.next();
+        calls[i].push_back(std::string("2 " + std::to_string(key)));
+      }
 
     std::cout << "after adding reads to all" << std::endl;
     for (int i = 0; i < nr_procs; i++)
@@ -148,7 +222,7 @@ int main(int argc, char *argv[])
 
   for (int i = 0; i < nr_procs; i++)
   {
-    for (int x = 0; x < calls[i].size(); x++)
+    for (int x = 0; x < (int)calls[i].size(); x++)
       outfile[i] << calls[i][x] << std::endl;
     outfile[i].close();
   }
