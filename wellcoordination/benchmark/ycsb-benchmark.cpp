@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
       } else {
         // READ
         calls[i].push_back(
-            "2 " + std::to_string(key));
+            "2");
       }
     }
   }
