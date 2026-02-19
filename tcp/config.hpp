@@ -9,8 +9,8 @@
 
 // #define PROJECT
 //#define STACK
-#define SET
-// #define YCSB
+// #define SET
+#define YCSB
 
 // #define MOVIE
 // #define COURSEWARE
