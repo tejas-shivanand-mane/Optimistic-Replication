@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
       for (int j = 0; j < read_calls / nr_procs; j++)
       {
         uint64_t key = keygen.next();
-        calls[i].push_back(std::string("2" + std::to_string(key)));
+        calls[i].push_back(std::string("2" ));
       }
 
     std::cout << "after adding reads to all" << std::endl;
