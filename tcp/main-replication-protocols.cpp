@@ -230,24 +230,22 @@ int main(int argc, char *argv[])
 
 
     std::thread([&]() {
-    std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2));
-
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-        for (int i = 0; i < numnodes; i++) {
-            if (i == id - 1) continue;
-
-            bool already_failed;
-            {
-                std::lock_guard<std::mutex> lock(hdl->mtx_heartbeat);
-                already_failed = hdl->node_failed[i];
+        std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2));
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            for (int i = 0; i < numnodes; i++) {
+                if (i == id - 1) continue;
+                bool already_failed;
+                {
+                    std::lock_guard<std::mutex> lock(hdl->mtx_heartbeat);
+                    already_failed = hdl->node_failed[i];
+                }
+                if (!already_failed && sc->isConnectionDead(i + 1)) {
+                    std::cout << "[Monitor] Detected dead socket for node " << (i+1) << "\n";
+                    hdl->markNodeFailed(i + 1);
+                }
             }
-
-            if (!already_failed && sc->isConnectionDead(i + 1))
-                hdl->markNodeFailed(i + 1);
         }
-    }
     }).detach();
 
 
