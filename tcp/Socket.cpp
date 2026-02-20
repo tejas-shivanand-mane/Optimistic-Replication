@@ -347,7 +347,7 @@ namespace amirmohsen
 				else
 				{
 					delete[] content;
-					throw new SocketClosedException(" @ TCPSocket.send(): Send failed or would block!");
+					throw new SocketClosedException(" @ TCPSocket.send(): Send failed or would block (buffer)!");
 				}
 			}
 			
@@ -369,7 +369,7 @@ namespace amirmohsen
 				}
 				else
 				{
-					throw new SocketClosedException(" @ TCPSocket.send(): Send failed or would block!");
+					throw new SocketClosedException(" @ TCPSocket.send(): Send failed or would block (message)!");
 				}
 			}
 		}
