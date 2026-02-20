@@ -67,7 +67,7 @@ void shutdownHandler(int signum) {
     if (global_hdl != nullptr) {
         std::cout << "[SHUTDOWN HOOK] Final stats:" << std::endl;
         std::cout << "  Stabilized ops: " << global_hdl->obj.waittobestable.load() << std::endl;
-        std::cout << "  Failed nodes: " << global_hdl->failed_nodes.size() << std::endl;
+        // std::cout << "  Failed nodes: " << global_hdl->failed_nodes.size() << std::endl;
     }
     
     std::cout << "[SHUTDOWN HOOK] Exiting..." << std::endl;
