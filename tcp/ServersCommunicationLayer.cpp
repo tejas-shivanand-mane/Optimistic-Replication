@@ -107,21 +107,31 @@ void ServersCommunicationLayer::broadcast(string &message)
 
 void ServersCommunicationLayer::broadcast(Buffer *message)
 {
+    
     for (auto it : connections)
     {
         if (getConnection(it.first) != NULL)
+        {
             try
             {
-                if (it.first != id)
+                if (it.first != id && !handler->failed[it.first - 1])
+                {
                     getConnection(it.first)->send(message);
+                }
             }
             catch (Exception *e)
             {
-                cout << e->getMessage() << endl;
-                cout << "Unable to send messages to remote " << it.first << endl;
-                delete e;
+
+                std::cout << "[Broadcast] Failed to send to node " << it.first 
+                         << ": " << e->getMessage() << std::endl;
+                
+                // failed_during_broadcast.push_back(it.first);
+                // delete e;
+
             }
+        }
     }
+
 }
 
 void ServersCommunicationLayer::establishConnection(Socket *socket, int remoteId)
@@ -146,33 +156,51 @@ void ServersCommunicationLayer::run()
 
 void ServersCommunicationLayer::handleAllReceives()
 {
-
-    auto last_print_time = steady_clock::now();
-
     while (true)
     {
-        
-        int id = 1;
-        for (auto &pair : connections)
-        {
-            ServerConnection *conn = pair.second;
-            if (conn != nullptr)
-            {
-                conn->receive();
-            }
-            /*// Print every 1000 millisecond
-            auto now = steady_clock::now();
-            if (duration_cast<milliseconds>(now - last_print_time).count() >= 1000)
-            {
-                std::cout << "[handleAllReceives] active id: " <<"Print id: "<<print_id<<" node id: " << id<< std::endl;
-                print_id++;
-                last_print_time = now;
-            }
-            id++;*/
+
+        static auto last_pump = std::chrono::steady_clock::now();
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_pump).count() >= 1) {
+
+            std::cout << "[Pump] alive connections=" << connections.size() << std::endl;
+
+
+            last_pump = now;
         }
+
+
+        for (auto it = connections.begin(); it != connections.end(); )
+        {
+            ServerConnection* conn = it->second;
+            try
+            {
+                if (conn != nullptr)
+                {
+                    conn->receive();
+                    ++it;  
+                }
+            }
+            catch (Exception* e)
+            {
+                cout<< "Exception caught by ServerCommunication Layer" << endl;
+
+                cout<< "Erasing connection to remoteid: "<< conn->remoteId << endl;
+
+                if (conn != nullptr)
+                {
+                    conn->closeSocket();
+                    delete conn;  
+                }
+                it = connections.erase(it);  
+
+
+
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::microseconds(10));  // prevent busy wait
     }
 }
-
 void ServersCommunicationLayer::closeAllSockets()
 {
     for (auto &pair : connections)
