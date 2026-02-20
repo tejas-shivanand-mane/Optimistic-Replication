@@ -11,8 +11,6 @@
 // #include "../protocol2-partialsyn.cpp"
 //#define FAILURE_MODE
 // #define CRDT_MESSAGE_PASSING
-bool activate_timeout = false; // this is used to activate the timeout in the main-replication-protocols.cpp
-bool one_time_stabelizer = true; //one time
 
 #ifdef CRDT_MESSAGE_PASSING
 #include "../protocol0-crdt-message-passing.cpp"
@@ -161,19 +159,6 @@ void ServerConnection::reconnect(Socket *newSocket)
 
 void ServerConnection::receive()
 {
-#ifdef FAILURE_MODE
-	//static std::chrono::steady_clock::time_point last_print_time = std::chrono::steady_clock::now();
-	//auto now = std::chrono::steady_clock::now();
-	//if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() >= 1)
-	if(activate_timeout && one_time_stabelizer)
-	{
-		one_time_stabelizer= false;
-		std::cout << "One time stabelizer :"<< std::endl;
-		handler->stabilizerWithAck();
-		//last_print_time = now;
-	}
-#endif
-
 	if (socket == nullptr)
 		return;
 
@@ -219,15 +204,18 @@ void ServerConnection::receive()
 				}
 #elif defined(OPTIMISTIC_REPLICATION)
 				//cout<<"check"<<call.type<<endl;
-				if (call.type == "Ack")
-				{
-					handler->updateAcksTable(call);
-				}
-				else if (handler->obj.checkValidcall(call))
-				{
-					// std::lock_guard<std::mutex> lock(handler->mtx);
-					handler->internalDownstreamExecute(call);
-				}
+
+			if (call.type == "Heartbeat") {
+				handler->updateHeartbeat(call.node_id);
+			}
+			else if (call.type == "Ack") {
+				handler->updateAcksTable(call);
+			}
+			else if (handler->obj.checkValidcall(call)) {
+				handler->internalDownstreamExecute(call);
+			}
+
+
 #elif defined(ECROS)
 				handler->internalDownstreamExecute(call);
 #endif
@@ -236,20 +224,13 @@ void ServerConnection::receive()
 	}
 	catch (Exception *e)
 	{
-#ifdef FAILURE_MODE
-		std::string msg = e->getMessage();
-		// if (activate_timeout)
-		// if (msg.find("closed the socket") != std::string::npos && activate_timeout)
-		//{
-		//std::cout << "Node " << this->remoteId << " marked as failed due to socket closure\n";
-		handler->setfailurenode(this->remoteId);
-		activate_timeout = true; // Reset the flag after marking as failed
+
+		std::cerr << "Socket error with node " << remoteId 
+				<< ": " << e->getMessage() << std::endl;
 		delete socket;
-    	socket = nullptr;
-		//}
-#else
-		std::cerr << "Receive failed:" << e->getMessage() << std::endl;
-#endif
-		delete e;
+		socket = nullptr;
+
+
+
 	}
 }

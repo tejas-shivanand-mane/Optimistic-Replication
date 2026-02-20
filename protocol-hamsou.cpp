@@ -14,6 +14,8 @@
 #include "../wellcoordination/benchmark/op-crdt-counter.hpp"
 
 
+#include <algorithm>
+
 
 // Define the Handler class
 class Handler
@@ -73,6 +75,13 @@ public:
 
     int failed[64];
 
+    // For failure detection
+    std::vector<std::chrono::steady_clock::time_point> last_heartbeat_time;
+    std::vector<bool> node_failed;
+    std::mutex mtx_heartbeat;
+
+
+
     // std::vector<Call> queuedList;
     int test;
     std::priority_queue<Call, std::vector<Call>, std::function<bool(const Call &, const Call &)>> priorityQueue;
@@ -95,8 +104,11 @@ public:
         acks.resize(num_nodes, std::vector<int>(350000, 0));
         obj.num_nodes = num_nodes;
         test = 0;
-        for (int i = 0; i < num_nodes; ++i)
-            failed[i]=false;
+
+
+        last_heartbeat_time.resize(num_nodes, std::chrono::steady_clock::now());
+        node_failed.assign(num_nodes, false);
+
     }
     size_t serializeCalls(Call call, uint8_t *buffer)
     {
@@ -452,6 +464,11 @@ public:
     void updateAcksTable(Call call)
     {
         int quorum = number_of_nodes - 1;
+
+        quorum -= countFailed();
+
+
+
         acks[call.node_id - 1][call.call_id]++;
 #ifdef DEBUG_MODE
         std::cout << "Exe - by update ack - type: " << call.type << " and value1: " << " -call id -" << call.call_id << "acks -- " << acks[call.node_id - 1][call.call_id] << "qu size  "<< priorityQueue.size()<<std::endl;
@@ -604,4 +621,51 @@ public:
         }
 #endif
     }
+
+
+
+
+    void updateHeartbeat(int remote_node_id) {
+        std::lock_guard<std::mutex> lock(mtx_heartbeat);
+        last_heartbeat_time[remote_node_id - 1] = std::chrono::steady_clock::now();
+    }
+
+    int countFailed() {
+        std::lock_guard<std::mutex> lock(mtx_heartbeat);
+        int count = 0;
+        for (bool f : node_failed) if (f) count++;
+        return count;
+    }
+
+    void markNodeFailed(int remote_node_id) {
+        {
+            std::lock_guard<std::mutex> lock(mtx_heartbeat);
+            if (node_failed[remote_node_id - 1]) return;
+            node_failed[remote_node_id - 1] = true;
+            std::cout << "[Failure] Node " << remote_node_id << " marked DEAD\n";
+        }
+
+        // Drop partially delivered calls from dead node (zero acks = nobody else has it)
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            executionList.erase(
+                std::remove_if(
+                    executionList.begin() + obj.stable_state.index,
+                    executionList.end(),
+                    [&](const Call& c) {
+                        return c.node_id == remote_node_id
+                            && acks[remote_node_id - 1][c.call_id] == 0;
+                    }
+                ),
+                executionList.end()
+            );
+            obj.current_state.index = executionList.size();
+        }
+
+        stabilizerWithAck();
+    }
+
+
+
+
 };

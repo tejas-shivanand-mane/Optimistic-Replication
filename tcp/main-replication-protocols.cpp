@@ -89,6 +89,65 @@ int main(int argc, char *argv[])
     int expected_calls = 0;
     hdl->obj.readBenchFile((loc + std::to_string(id) + ".txt").c_str(), expected_calls, id, numnodes, call, calls); // new added
     hdl->setVars(id, numnodes, expected_calls, writep);
+
+
+
+    // Heartbeat Sender
+    std::thread([&]() {
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+            Call hb;
+            hb.type     = "Heartbeat";
+            hb.node_id  = id;
+            hb.call_id  = 0;
+            hb.value1   = 0;
+            hb.stable   = false;
+            hb.call_vector_clock.resize(numnodes, 0);
+
+            uint8_t buffer[4096];
+            size_t len = hdl->serializeCalls(hb, buffer);
+            Buffer* buf = new Buffer(len);
+            buf->setContent(reinterpret_cast<char*>(buffer), len);
+            sc->broadcast(buf);
+            delete buf;
+        }
+    }).detach();
+
+    // Heartbeat Monitor
+    std::thread([&]() {
+        const int TIMEOUT_MS = 1000;
+        std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2)); // wait for all nodes to connect first
+
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            auto now = std::chrono::steady_clock::now();
+
+            for (int i = 0; i < numnodes; i++) {
+                if (i == id - 1) continue;
+
+                bool already_failed;
+                long long elapsed;
+                {
+                    std::lock_guard<std::mutex> lock(hdl->mtx_heartbeat);
+                    already_failed = hdl->node_failed[i];
+                    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        now - hdl->last_heartbeat_time[i]).count();
+                }
+
+                if (!already_failed && elapsed > TIMEOUT_MS)
+                    hdl->markNodeFailed(i + 1);
+            }
+        }
+    }).detach();
+
+
+
+
+
+
+
+
     /*
     std::ifstream myfile;
     myfile.open((loc + std::to_string(id) + ".txt").c_str());
