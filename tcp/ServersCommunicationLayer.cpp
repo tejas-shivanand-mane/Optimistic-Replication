@@ -41,6 +41,8 @@ public:
     void run();
     void handleAllReceives();
     void closeAllSockets();
+
+    bool isConnectionDead(int remoteId);
 };
 
 ServersCommunicationLayer::~ServersCommunicationLayer()
@@ -181,4 +183,11 @@ void ServersCommunicationLayer::closeAllSockets()
             conn->closeSocket();
         }
     }
+}
+
+
+bool ServersCommunicationLayer::isConnectionDead(int remoteId) {
+    auto it = connections.find(remoteId);
+    if (it == connections.end()) return false;
+    return it->second->isSocketNull();
 }

@@ -70,6 +70,8 @@ public:
 	void reconnect(Socket *socket);
 	void receive();
 	void closeSocket();
+
+	bool isSocketNull();
 };
 
 ServerConnection::ServerConnection(int id, int remoteId, Socket *socket, std::vector<string> hosts, int *ports, Handler *hdl, std::atomic<int> *initcounter)
@@ -155,6 +157,11 @@ void ServerConnection::reconnect(Socket *newSocket)
 			// receiver->start();
 		}
 	}
+}
+
+
+bool ServerConnection::isSocketNull() {
+    return socket == nullptr;
 }
 
 void ServerConnection::receive()

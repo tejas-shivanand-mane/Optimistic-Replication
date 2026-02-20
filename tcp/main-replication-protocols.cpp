@@ -177,55 +177,77 @@ int main(int argc, char *argv[])
 
 
 
-    // Heartbeat Sender
+    // // Heartbeat Sender
+    // std::thread([&]() {
+    //     std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2)); // wait for connections first
+    //     while (true) {
+    //         std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    //         Call hb;
+    //         hb.type     = "Heartbeat";
+    //         hb.node_id  = id;
+    //         hb.call_id  = 0;
+    //         hb.value1   = 0;
+    //         hb.stable   = false;
+    //         hb.call_vector_clock.resize(numnodes, 0);
+
+    //         uint8_t buffer[4096];
+    //         size_t len = hdl->serializeCalls(hb, buffer);
+    //         Buffer* buf = new Buffer(len);
+    //         buf->setContent(reinterpret_cast<char*>(buffer), len);
+    //         sc->broadcast(buf);
+    //         delete buf;
+    //     }
+    // }).detach();
+
+
+    // // Heartbeat Monitor
+    // std::thread([&]() {
+    //     const int TIMEOUT_MS = 5000;
+    //     std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2) + std::chrono::milliseconds(1500));
+
+    //     while (true) {
+    //         std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    //         auto now = std::chrono::steady_clock::now();
+
+    //         for (int i = 0; i < numnodes; i++) {
+    //             if (i == id - 1) continue;
+
+    //             bool already_failed;
+    //             long long elapsed;
+    //             {
+    //                 std::lock_guard<std::mutex> lock(hdl->mtx_heartbeat);
+    //                 already_failed = hdl->node_failed[i];
+    //                 elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+    //                     now - hdl->last_heartbeat_time[i]).count();
+    //             }
+
+    //             if (!already_failed && elapsed > TIMEOUT_MS)
+    //                 hdl->markNodeFailed(i + 1);
+    //         }
+    //     }
+    // }).detach();
+
+
     std::thread([&]() {
-        std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2)); // wait for connections first
-        while (true) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2));
 
-            Call hb;
-            hb.type     = "Heartbeat";
-            hb.node_id  = id;
-            hb.call_id  = 0;
-            hb.value1   = 0;
-            hb.stable   = false;
-            hb.call_vector_clock.resize(numnodes, 0);
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-            uint8_t buffer[4096];
-            size_t len = hdl->serializeCalls(hb, buffer);
-            Buffer* buf = new Buffer(len);
-            buf->setContent(reinterpret_cast<char*>(buffer), len);
-            sc->broadcast(buf);
-            delete buf;
-        }
-    }).detach();
+        for (int i = 0; i < numnodes; i++) {
+            if (i == id - 1) continue;
 
-
-    // Heartbeat Monitor
-    std::thread([&]() {
-        const int TIMEOUT_MS = 5000;
-        std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2) + std::chrono::milliseconds(1500));
-
-        while (true) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            auto now = std::chrono::steady_clock::now();
-
-            for (int i = 0; i < numnodes; i++) {
-                if (i == id - 1) continue;
-
-                bool already_failed;
-                long long elapsed;
-                {
-                    std::lock_guard<std::mutex> lock(hdl->mtx_heartbeat);
-                    already_failed = hdl->node_failed[i];
-                    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        now - hdl->last_heartbeat_time[i]).count();
-                }
-
-                if (!already_failed && elapsed > TIMEOUT_MS)
-                    hdl->markNodeFailed(i + 1);
+            bool already_failed;
+            {
+                std::lock_guard<std::mutex> lock(hdl->mtx_heartbeat);
+                already_failed = hdl->node_failed[i];
             }
+
+            if (!already_failed && sc->isConnectionDead(i + 1))
+                hdl->markNodeFailed(i + 1);
         }
+    }
     }).detach();
 
 
