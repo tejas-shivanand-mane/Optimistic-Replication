@@ -173,11 +173,12 @@ public:
 
         return len + sizeof(uint64_t) + 2 * sizeof(uint64_t);
     }
+    
     void setfailurenode(int id)
     {
         failed[id - 1] = true;
-        //cout<< "test failure node: " << failed[id - 1] << endl;
     }
+
     void deserializeCalls(uint8_t *buffer, Call &call)
     {
         uint8_t *start = buffer + sizeof(uint64_t);
@@ -455,14 +456,7 @@ public:
 #ifdef DEBUG_MODE
         std::cout << "Exe - by update ack - type: " << call.type << " and value1: " << " -call id -" << call.call_id << "acks -- " << acks[call.node_id - 1][call.call_id] << "qu size  "<< priorityQueue.size()<<std::endl;
 #endif
-        int num_failed = 0;
-#ifdef FAILURE_MODE
-        for (int i = 0; i < number_of_nodes; ++i)
-            if (failed[i])
-                num_failed++;
-        //cout<< "num failed nodes: " << num_failed << std::endl;
-        quorum -= num_failed;
-#endif
+
         if (call.node_id == node_id)
         {
             if (acks[call.node_id - 1][call.call_id] == (quorum))
@@ -485,12 +479,6 @@ public:
         bool can_unqued = false;
         int quorum = number_of_nodes - 1;
         int num_failed = 0;
-#ifdef FAILURE_MODE
-        for (int i = 0; i < number_of_nodes; ++i)
-            if (failed[i])
-                num_failed++;
-        quorum -= num_failed;
-#endif
         {
             std::lock_guard<std::mutex> lock(mtx);
             int i = obj.stable_state.index;
