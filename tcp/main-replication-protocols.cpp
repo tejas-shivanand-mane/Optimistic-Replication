@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
     // Heartbeat Monitor
     std::thread([&]() {
         const int TIMEOUT_MS = 5000;
-        std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2)); // wait for all nodes to connect first
+        std::this_thread::sleep_for(std::chrono::seconds(numnodes * 3 + 2) + std::chrono::milliseconds(1500));
 
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
