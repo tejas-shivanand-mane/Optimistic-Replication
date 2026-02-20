@@ -196,6 +196,15 @@ void ServerConnection::receive()
 					// activate_timeout = true;
 				}
 			}
+
+			else if (strcmp(buff->getContent(), "shutdown") == 0)
+			{
+
+				cout << "shutdown received: Server Connection Failing for " << this->remoteId << endl;
+				handler->markNodeFailed(this->remoteId);
+
+
+			}
 			else
 			{
 				Call call;
