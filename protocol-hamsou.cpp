@@ -495,6 +495,11 @@ public:
     {
         bool can_unqued = false;
         int quorum = number_of_nodes - 1;
+
+        int failed_count = countFailed();
+        quorum -= failed_count;
+
+
         int num_failed = 0;
         {
             std::lock_guard<std::mutex> lock(mtx);
