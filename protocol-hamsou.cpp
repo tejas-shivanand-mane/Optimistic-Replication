@@ -476,7 +476,7 @@ public:
 
         if (call.node_id == node_id)
         {
-            if (acks[call.node_id - 1][call.call_id] == (quorum))
+            if (acks[call.node_id - 1][call.call_id] >= (quorum))
             {
                 // std::lock_guard<std::mutex> lock(mtx);
                 stabilizerWithAck();
@@ -484,7 +484,7 @@ public:
         }
         else
         {
-            if (acks[call.node_id - 1][call.call_id] == (quorum - 1))
+            if (acks[call.node_id - 1][call.call_id] >= (quorum - 1))
             {
                 // std::lock_guard<std::mutex> lock(mtx);
                 stabilizerWithAck();
@@ -528,7 +528,7 @@ public:
                 stable = false;
                 if (executionList[i].node_id == node_id)
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] == (quorum))
+                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum))
                     {
                         stable = true;
                         can_unqued = true;
@@ -536,7 +536,7 @@ public:
                 }
                 else
                 {
-                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] == (quorum - 1))
+                    if (acks[executionList[i].node_id - 1][executionList[i].call_id] >= (quorum - 1))
                     {
                         stable = true;
                         can_unqued = true;
