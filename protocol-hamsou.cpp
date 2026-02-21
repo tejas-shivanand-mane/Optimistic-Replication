@@ -15,7 +15,7 @@
 
 
 #include <algorithm>
-
+#include <memory>
 
 // Define the Handler class
 class Handler
@@ -645,6 +645,8 @@ public:
             std::cout << "[Failure] Node " << remote_node_id << " marked DEAD\n";
         }
 
+
+        std::cout << "[Failure] Removing pending calls from node " << remote_node_id << " and stabilizing...\n";
         // Drop partially delivered calls from dead node (zero acks = nobody else has it)
         {
             std::lock_guard<std::mutex> lock(mtx);
@@ -663,7 +665,49 @@ public:
         }
 
         stabilizerWithAck();
+
+
+
+        // Force drain priority queue — items queued waiting on dead node's calls
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            while (!priorityQueue.empty()) {
+                Call topCall = priorityQueue.top();
+                auto pos = std::next(executionList.begin(), obj.stable_state.index);
+                auto end = executionList.end();
+                bool reachable = false;
+                while (pos != end) {
+                    reachable = obj.fastisreachableremote(topCall, *pos);
+                    if (reachable) break;
+                    ++pos;
+                }
+                auto index = std::distance(executionList.begin(), pos);
+                executionList.insert(pos, topCall);
+                obj.current_state.index++;
+                obj.updateCurrentState(topCall);
+                vector_clock[topCall.node_id - 1]++;
+                priorityQueue.pop();
+
+                // Send ack for this call
+                obj.send_ack = true;
+                obj.send_ack_call.type = "Ack";
+                obj.send_ack_call.node_id = topCall.node_id;
+                obj.send_ack_call.call_id = topCall.call_id;
+                obj.send_ack_call.value1 = topCall.value1;
+                auto new_ack_list = std::make_shared<std::vector<Call>>(*obj.send_ack_call_list);
+                new_ack_list->push_back(obj.send_ack_call);
+                std::atomic_store(&obj.send_ack_call_list, new_ack_list);
+                obj.ackindex.store(obj.ackindex.load() + 1);
+            }
+        }
+
+        // Second pass — stabilize newly inserted calls
+        stabilizerWithAck();
+
+
     }
+
+
 
 
 
