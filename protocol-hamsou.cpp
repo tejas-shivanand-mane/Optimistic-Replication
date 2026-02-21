@@ -510,6 +510,17 @@ public:
                 return;
             }
 
+
+            std::cout << "[Stabilizer] checking index=" << i 
+                    << " node_id=" << executionList[i].node_id 
+                    << " call_id=" << executionList[i].call_id
+                    << " acks=" << acks[executionList[i].node_id - 1][executionList[i].call_id]
+                    << " quorum=" << quorum
+                    << " failed=" << failed_count
+                    << " queueSize=" << priorityQueue.size()
+                    << std::endl;
+
+
             bool stable = true;
 
             while (stable && i < executionList.size())

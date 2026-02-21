@@ -114,7 +114,7 @@ void ServersCommunicationLayer::broadcast(Buffer *message)
         {
             try
             {
-                if (it.first != id && !handler->failed[it.first - 1])
+                if (it.first != id && !handler->node_failed[it.first - 1])
                 {
                     getConnection(it.first)->send(message);
                 }
